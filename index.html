@@ -413,6 +413,9 @@ body{font-family:'Inter',sans-serif;background:var(--ng);color:var(--bl);min-hei
 </head>
 <body>
 
+<!-- Iframe oculto para sync Google Sheets sin recargar página -->
+<iframe name="sheets-iframe" style="display:none" width="0" height="0"></iframe>
+
 <!-- PIN SCREEN -->
 <div id="pin-screen">
   <div class="pin-logo">MONO<span>MANDINGAS</span></div>
@@ -1835,19 +1838,18 @@ function registrarCompra() {
 
 const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyKtb-JRyGy8YCUmJ-KzBOqOKLPsQtoQVyReVOBQ5FVZx7uTUq4PtGaphK8FllMAQJBPg/exec';
 
-async function syncSheets(payload) {
+function syncSheets(payload) {
   try {
-    await fetch(SHEETS_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    // no-cors no devuelve respuesta, pero si llegó sin error = OK
-    console.log('Sheets sync OK:', payload.tipo);
+    // Enviamos como GET con el payload en la URL — funciona sin CORS con Apps Script
+    const url = SHEETS_URL + '?payload=' + encodeURIComponent(JSON.stringify(payload));
+    const img = document.createElement('img');
+    img.src = url;
+    img.style.display = 'none';
+    document.body.appendChild(img);
+    setTimeout(() => { try { document.body.removeChild(img); } catch(e){} }, 5000);
+    console.log('Sheets sync enviado:', payload.tipo);
   } catch(err) {
     console.warn('Sheets sync error:', err);
-    // No interrumpir el flujo del POS si falla
   }
 }
 
