@@ -1108,6 +1108,9 @@ function confirmarPedido(){
   };
   const itemsParaInventario = pedidoItems.map(i=>({id:i.producto.id, qty:i.qty}));
   activos[sede].push(pedido); historial[sede].push(pedido);
+
+  // Sync a Google Sheets
+  syncSheets({ tipo:'pedido', ...pedido });
   document.getElementById('orden-num').textContent=`#${String(pedidoCounter).padStart(3,'0')}`;
   updateStats(); renderActivos(); limpiarPedido();
 
@@ -1210,6 +1213,9 @@ function confirmarAnulacion(){
   const p=activos[sede].find(x=>x.numero===anularPedidoId); if(!p){ cerrarAnularModal(); return; }
   p.estado='anulado'; p.motivoAnulacion=motivo; p.horaAnulacion=now();
   activos[sede]=activos[sede].filter(x=>x.numero!==anularPedidoId);
+  // Sync anulación a Google Sheets
+  syncSheets({ tipo:'pedido', ...pedido });
+
   cerrarAnularModal(); updateStats(); renderActivos();
   showToast(`🚫 Pedido #${anularPedidoId} anulado`,true);
 }
@@ -1493,6 +1499,9 @@ function confirmarApertura(){
   btn.style.background='rgba(67,160,71,.15)';
   btn.style.borderColor='var(--ve)';
   btn.style.color='var(--ve)';
+  // Sync a Google Sheets
+  syncSheets({ tipo:'apertura', fecha:hoy(), hora:now(), sede, base });
+
   cerrarApertura();
   showToast(`🔓 Caja La ${sede} abierta · Base: ${fmt(base)}`);
 }
@@ -1517,6 +1526,9 @@ function agregarGasto(){
   document.getElementById('gasto-categoria').value='';
   document.getElementById('gasto-desc').value='';
   document.getElementById('gasto-valor').value='';
+  // Sync a Google Sheets
+  syncSheets({ tipo:'gasto', fecha:hoy(), hora:now(), sede, categoria:cat, desc, valor });
+
   renderGastosList();
   showToast(`💸 Gasto registrado: ${fmt(valor)}`);
 }
@@ -1815,6 +1827,28 @@ function registrarCompra() {
 
   renderCompras(comprasSede);
   showToast(`✅ Compra registrada · +${cantidad} ${insumoNombre.split(' (')[0]}`);
+}
+
+// ═══════════════════════════════════════════════
+//  GOOGLE SHEETS — SINCRONIZACIÓN EN TIEMPO REAL
+// ═══════════════════════════════════════════════
+
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyKtb-JRyGy8YCUmJ-KzBOqOKLPsQtoQVyReVOBQ5FVZx7uTUq4PtGaphK8FllMAQJBPg/exec';
+
+async function syncSheets(payload) {
+  try {
+    await fetch(SHEETS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    // no-cors no devuelve respuesta, pero si llegó sin error = OK
+    console.log('Sheets sync OK:', payload.tipo);
+  } catch(err) {
+    console.warn('Sheets sync error:', err);
+    // No interrumpir el flujo del POS si falla
+  }
 }
 
 // ═══════════════════════════════════════════════
