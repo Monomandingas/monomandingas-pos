@@ -337,9 +337,116 @@ body{font-family:'Inter',sans-serif;background:var(--ng);color:var(--bl);min-hei
 .toast.show{transform:translateX(0)}
 
 .hidden{display:none!important}
+
+/* ── PIN SCREEN ── */
+#pin-screen {
+  position:fixed;inset:0;background:var(--ng);z-index:9999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:0;
+}
+.pin-logo {
+  font-family:'Bebas Neue',sans-serif;font-size:52px;color:var(--am);
+  letter-spacing:4px;margin-bottom:4px;text-align:center;
+}
+.pin-logo span{color:var(--bl)}
+.pin-tagline {
+  font-size:13px;color:var(--ts);margin-bottom:36px;letter-spacing:1px;
+  text-transform:uppercase;
+}
+.pin-box {
+  background:var(--gp);border:1px solid var(--gb);border-radius:16px;
+  padding:28px 32px;width:320px;
+}
+.pin-box-title {
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+  color:var(--ts);text-align:center;margin-bottom:16px;
+}
+.pin-sede-tabs {
+  display:flex;gap:6px;margin-bottom:20px;
+}
+.pin-sede-btn {
+  flex:1;padding:8px;border-radius:7px;border:2px solid var(--gb);
+  background:var(--ng);color:var(--ts);font-size:12px;font-weight:700;
+  cursor:pointer;transition:all .2s;text-align:center;
+}
+.pin-sede-btn.active {
+  background:var(--am);border-color:var(--am);color:var(--ng);
+}
+.pin-display {
+  background:var(--ng);border:1px solid var(--gb);border-radius:8px;
+  padding:14px;text-align:center;margin-bottom:16px;
+  font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:8px;
+  color:var(--am);min-height:60px;line-height:1.2;
+}
+.pin-display.error {
+  color:var(--ro);border-color:var(--ro);animation:shake .3s ease;
+}
+@keyframes shake {
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-6px)}
+  75%{transform:translateX(6px)}
+}
+.pin-grid {
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;
+}
+.pin-btn {
+  padding:14px;background:var(--gm);border:1px solid var(--gb);color:var(--bl);
+  border-radius:9px;font-size:20px;font-weight:700;cursor:pointer;
+  transition:all .15s;text-align:center;font-family:'Inter',sans-serif;
+}
+.pin-btn:hover{background:var(--gb);border-color:var(--am)}
+.pin-btn:active{transform:scale(.95);background:var(--am);color:var(--ng)}
+.pin-btn.del{color:var(--ro);font-size:16px}
+.pin-btn.del:hover{background:rgba(229,57,53,.15);border-color:var(--ro)}
+.pin-btn.enter{
+  grid-column:span 3;background:var(--am);color:var(--ng);
+  font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;
+  border:none;
+}
+.pin-btn.enter:hover{background:#FFD600}
+.pin-hint{font-size:10px;color:var(--ts);text-align:center;margin-top:10px}
+.pin-error-msg{
+  font-size:11px;color:var(--ro);text-align:center;margin-top:8px;
+  font-weight:700;min-height:16px;
+}
 </style>
 </head>
 <body>
+
+<!-- PIN SCREEN -->
+<div id="pin-screen">
+  <div class="pin-logo">MONO<span>MANDINGAS</span></div>
+  <div class="pin-tagline">Sistema de Punto de Venta</div>
+
+  <div class="pin-box">
+    <div class="pin-box-title">Selecciona tu sede e ingresa el PIN</div>
+
+    <div class="pin-sede-tabs">
+      <div class="pin-sede-btn active" onclick="pinSetSede('99')" id="psede99">🏪 La 99</div>
+      <div class="pin-sede-btn" onclick="pinSetSede('43')" id="psede43">🏪 La 43</div>
+    </div>
+
+    <div class="pin-display" id="pin-display">_ _ _ _</div>
+
+    <div class="pin-grid">
+      <button class="pin-btn" onclick="pinPress('1')">1</button>
+      <button class="pin-btn" onclick="pinPress('2')">2</button>
+      <button class="pin-btn" onclick="pinPress('3')">3</button>
+      <button class="pin-btn" onclick="pinPress('4')">4</button>
+      <button class="pin-btn" onclick="pinPress('5')">5</button>
+      <button class="pin-btn" onclick="pinPress('6')">6</button>
+      <button class="pin-btn" onclick="pinPress('7')">7</button>
+      <button class="pin-btn" onclick="pinPress('8')">8</button>
+      <button class="pin-btn" onclick="pinPress('9')">9</button>
+      <button class="pin-btn del" onclick="pinDel()">⌫</button>
+      <button class="pin-btn" onclick="pinPress('0')">0</button>
+      <button class="pin-btn del" onclick="pinClear()">✕</button>
+    </div>
+    <button class="pin-btn enter" onclick="pinEnter()">INGRESAR</button>
+    <div class="pin-error-msg" id="pin-error"></div>
+    <div class="pin-hint">Contacta al administrador si no recuerdas tu PIN</div>
+  </div>
+</div>
 
 <!-- HEADER -->
 <div class="hdr">
@@ -1709,6 +1816,92 @@ function registrarCompra() {
   renderCompras(comprasSede);
   showToast(`✅ Compra registrada · +${cantidad} ${insumoNombre.split(' (')[0]}`);
 }
+
+// ═══════════════════════════════════════════════
+//  SISTEMA DE PIN
+// ═══════════════════════════════════════════════
+
+// PINes por sede — cámbialos a los que quieras
+// PIN 9999 = Admin (acceso a todas las sedes + reportes)
+const PINES = {
+  '99':   '1999',   // PIN sede La 99
+  '43':   '4343',   // PIN sede La 43
+  'admin':'9999',   // PIN administrador
+};
+
+let pinSede = '99';
+let pinBuffer = '';
+
+function pinSetSede(s) {
+  pinSede = s;
+  document.getElementById('psede99').classList.toggle('active', s==='99');
+  document.getElementById('psede43').classList.toggle('active', s==='43');
+  pinClear();
+}
+
+function pinPress(n) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += n;
+  renderPinDisplay();
+}
+
+function pinDel() {
+  pinBuffer = pinBuffer.slice(0, -1);
+  renderPinDisplay();
+}
+
+function pinClear() {
+  pinBuffer = '';
+  document.getElementById('pin-error').textContent = '';
+  renderPinDisplay();
+}
+
+function renderPinDisplay() {
+  const dots = pinBuffer.split('').map(() => '●').join(' ');
+  const blanks = Array(4 - pinBuffer.length).fill('_').join(' ');
+  document.getElementById('pin-display').textContent = dots + (dots && blanks ? ' ' : '') + blanks;
+  document.getElementById('pin-display').classList.remove('error');
+}
+
+function pinEnter() {
+  const pin = pinBuffer;
+  const correctPin = PINES[pinSede];
+  const isAdmin = pin === PINES['admin'];
+
+  if (pin === correctPin || isAdmin) {
+    // Acceso concedido
+    const sedeAcceso = isAdmin ? '99' : pinSede;
+    document.getElementById('pin-screen').style.display = 'none';
+    setSede(sedeAcceso);
+    // Admin ve todas las pestañas; empleado solo ve POS
+    if (!isAdmin) {
+      document.getElementById('ntab-reports').style.display = 'none';
+    } else {
+      document.getElementById('ntab-reports').style.display = '';
+    }
+  } else {
+    // PIN incorrecto
+    document.getElementById('pin-display').classList.add('error');
+    document.getElementById('pin-error').textContent = 'PIN incorrecto. Inténtalo de nuevo.';
+    pinBuffer = '';
+    setTimeout(() => {
+      renderPinDisplay();
+      document.getElementById('pin-error').textContent = '';
+    }, 1500);
+  }
+}
+
+// Permitir teclado numérico también
+document.addEventListener('keydown', function(e) {
+  const pinVisible = document.getElementById('pin-screen').style.display !== 'none'
+    && document.getElementById('pin-screen').style.display !== '';
+  if (document.getElementById('pin-screen').offsetParent !== null) {
+    if (e.key >= '0' && e.key <= '9') pinPress(e.key);
+    else if (e.key === 'Backspace') pinDel();
+    else if (e.key === 'Enter') pinEnter();
+    else if (e.key === 'Escape') pinClear();
+  }
+});
 
 // INIT
 window.onload=()=>{ renderMenu(); renderPagoGrid(); updateStats(); };
