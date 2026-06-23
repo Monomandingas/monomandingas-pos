@@ -1840,14 +1840,11 @@ const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyKtb-JRyGy8YCUmJ-Kz
 
 function syncSheets(payload) {
   try {
-    // Enviamos como GET con el payload en la URL — funciona sin CORS con Apps Script
     const url = SHEETS_URL + '?payload=' + encodeURIComponent(JSON.stringify(payload));
-    const img = document.createElement('img');
-    img.src = url;
-    img.style.display = 'none';
-    document.body.appendChild(img);
-    setTimeout(() => { try { document.body.removeChild(img); } catch(e){} }, 5000);
-    console.log('Sheets sync enviado:', payload.tipo);
+    // fetch con mode no-cors sobre GET — no necesita preflight, siempre pasa
+    fetch(url, { method: 'GET', mode: 'no-cors' })
+      .then(() => console.log('Sheets sync OK:', payload.tipo))
+      .catch(err => console.warn('Sheets sync error:', err));
   } catch(err) {
     console.warn('Sheets sync error:', err);
   }
