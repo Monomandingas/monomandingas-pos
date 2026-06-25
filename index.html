@@ -1112,8 +1112,8 @@ function confirmarPedido(){
   const itemsParaInventario = pedidoItems.map(i=>({id:i.producto.id, qty:i.qty}));
   activos[sede].push(pedido); historial[sede].push(pedido);
 
-  // Sync a Google Sheets
-  syncSheets({ tipo:'pedido', ...pedido });
+  // Sync a Google Sheets — tipoPedido va como 'entrega', tipo:'pedido' identifica el registro
+  syncSheets({ ...pedido, tipo:'pedido', entrega:pedido.tipo });
   document.getElementById('orden-num').textContent=`#${String(pedidoCounter).padStart(3,'0')}`;
   updateStats(); renderActivos(); limpiarPedido();
 
@@ -1217,7 +1217,7 @@ function confirmarAnulacion(){
   p.estado='anulado'; p.motivoAnulacion=motivo; p.horaAnulacion=now();
   activos[sede]=activos[sede].filter(x=>x.numero!==anularPedidoId);
   // Sync anulación a Google Sheets
-  syncSheets({ tipo:'pedido', ...pedido });
+  syncSheets({ ...pedido, tipo:'pedido', entrega:pedido.tipo });
 
   cerrarAnularModal(); updateStats(); renderActivos();
   showToast(`🚫 Pedido #${anularPedidoId} anulado`,true);
@@ -1600,15 +1600,15 @@ const RECETAS = {
   'P07': [{id:'papa',qty:3},{id:'chorizo_tern',qty:1},{id:'huevo_cod',qty:2}],
   'P08': [{id:'papa',qty:3},{id:'chorizo_tern',qty:1},{id:'huevo_cod',qty:1},{id:'salchicha',qty:1},{id:'chorizo_coc',qty:1}],
   'P09': [{id:'papa',qty:3},{id:'chorizo_tern',qty:1},{id:'huevo_cod',qty:2},{id:'salchicha',qty:2},{id:'chorizo_coc',qty:2}],
-  'P10': [{id:'papa',qty:3},{id:'huevo_cod',qty:1},{id:'pollo_desmech',qty:150}],  // ⚠️ PENDIENTE gramaje
-  'P11': [{id:'papa',qty:3},{id:'huevo_cod',qty:1},{id:'salchicha',qty:1},{id:'chorizo_coc',qty:1},{id:'pollo_desmech',qty:150}],
-  'P12': [{id:'papa',qty:3},{id:'huevo_cod',qty:1},{id:'salchicha',qty:1},{id:'chorizo_coc',qty:1},{id:'carne_desmech',qty:200}],
-  'PAT1':[{id:'papa',qty:1},{id:'patacon',qty:1},{id:'huevo_cod',qty:1},{id:'pollo_desmech',qty:300}],
-  'PAT2':[{id:'papa',qty:1},{id:'patacon',qty:1},{id:'huevo_cod',qty:1},{id:'pollo_desmech',qty:150},{id:'carne_desmech',qty:175}],
-  'PAT3':[{id:'papa',qty:1},{id:'patacon',qty:1},{id:'huevo_cod',qty:1},{id:'carne_desmech',qty:350}],
-  'C01': [{id:'papa',qty:6},{id:'salchicha',qty:4},{id:'huevo_cod',qty:1},{id:'chorizo_coc',qty:1},{id:'pollo_desmech',qty:300},{id:'longaniza',qty:1}],
-  'C02': [{id:'papa',qty:6},{id:'salchicha',qty:4},{id:'huevo_cod',qty:1},{id:'chorizo_coc',qty:1},{id:'carne_desmech',qty:525},{id:'longaniza',qty:1}],
-  'C03': [{id:'papa',qty:6},{id:'salchicha',qty:4},{id:'huevo_cod',qty:1},{id:'chorizo_coc',qty:1},{id:'carne_desmech',qty:350},{id:'pollo_desmech',qty:150},{id:'longaniza',qty:1}],
+  'P10': [{id:'papa',qty:3},{id:'huevo_cod',qty:1},{id:'pollo_desmech',qty:45}],
+  'P11': [{id:'papa',qty:3},{id:'huevo_cod',qty:1},{id:'salchicha',qty:1},{id:'chorizo_coc',qty:1},{id:'pollo_desmech',qty:60}],
+  'P12': [{id:'papa',qty:3},{id:'huevo_cod',qty:1},{id:'salchicha',qty:1},{id:'chorizo_coc',qty:1},{id:'carne_desmech',qty:130}],
+  'PAT1':[{id:'papa',qty:1},{id:'patacon',qty:1},{id:'huevo_cod',qty:1},{id:'pollo_desmech',qty:75}],
+  'PAT2':[{id:'papa',qty:1},{id:'patacon',qty:1},{id:'huevo_cod',qty:1},{id:'pollo_desmech',qty:60},{id:'carne_desmech',qty:130}],
+  'PAT3':[{id:'papa',qty:1},{id:'patacon',qty:1},{id:'huevo_cod',qty:1},{id:'carne_desmech',qty:130}],
+  'C01': [{id:'papa',qty:6},{id:'salchicha',qty:4},{id:'huevo_cod',qty:1},{id:'chorizo_coc',qty:1},{id:'pollo_desmech',qty:75},{id:'longaniza',qty:1}],
+  'C02': [{id:'papa',qty:6},{id:'salchicha',qty:4},{id:'huevo_cod',qty:1},{id:'chorizo_coc',qty:1},{id:'carne_desmech',qty:230},{id:'longaniza',qty:1}],
+  'C03': [{id:'papa',qty:6},{id:'salchicha',qty:4},{id:'huevo_cod',qty:1},{id:'chorizo_coc',qty:1},{id:'carne_desmech',qty:130},{id:'pollo_desmech',qty:60},{id:'longaniza',qty:1}],
   'B01': [{id:'beb_personal',qty:1}],
   'B02': [{id:'beb_mini',qty:1}],
   'B03': [{id:'beb_litromedio',qty:1}],
