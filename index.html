@@ -125,7 +125,7 @@ body{font-family:'Inter',sans-serif;background:var(--ng);color:var(--bl);min-hei
 .btn-clear:hover{border-color:var(--ro);color:var(--ro)}
 
 /* ACTIVE ORDERS PANEL */
-.active-panel{width:280px;background:var(--ng);border-left:1px solid var(--gb);display:flex;flex-direction:column;overflow:hidden}
+.active-panel{width:320px;background:var(--ng);border-left:1px solid var(--gb);display:flex;flex-direction:column;overflow:hidden}
 .ap-head{padding:11px 13px;border-bottom:1px solid var(--gb);background:var(--gm);display:flex;align-items:center;justify-content:space-between}
 .ap-title{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--ci);letter-spacing:1px}
 .ap-count{font-size:10px;background:rgba(0,188,212,.12);color:var(--ci);border:1px solid var(--ci);padding:2px 7px;border-radius:8px;font-weight:700}
@@ -1136,18 +1136,39 @@ function renderActivos(){
   if(!pend.length){ list.innerHTML=`<div class="ap-empty"><div style="font-size:28px;opacity:.4">📋</div><div>Sin pedidos pendientes</div></div>`; return; }
   list.innerHTML='';
   pend.forEach(p=>{
-    const resumen=p.items.map(i=>`${i.qty}× ${i.nombre}`).join(', ');
     const pagoStr=Object.entries(p.pagos).filter(([,v])=>v>0).map(([k,v])=>`${k.toUpperCase()}: ${fmt(v)}`).join(' · ');
+
+    // Construir detalle completo de cada ítem con salsas y adiciones
+    const itemsHTML = p.items.map(i => {
+      const salsasStr = i.salsas && i.salsas.length
+        ? '<div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:3px">' +
+          i.salsas.map(s=>`<span style="font-size:9px;padding:1px 5px;border-radius:6px;background:rgba(245,200,0,.12);border:1px solid var(--am);color:var(--am)">${s}</span>`).join('') +
+          '</div>' : '';
+      const adicionesStr = i.adiciones && i.adiciones.length
+        ? '<div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:3px">' +
+          i.adiciones.map(a=>`<span style="font-size:9px;padding:1px 5px;border-radius:6px;background:rgba(251,140,0,.12);border:1px solid var(--na);color:var(--na)">+${a.qty} ${a.n||a.nombre}</span>`).join('') +
+          '</div>' : '';
+      const notaStr = i.nota
+        ? `<div style="font-size:9px;color:var(--ts);margin-top:2px;font-style:italic">📝 ${i.nota}</div>` : '';
+      return `<div style="background:var(--ng);border:1px solid var(--gb);border-radius:6px;padding:7px 9px;margin-bottom:5px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;font-weight:700">${i.qty}× ${i.nombre}</span>
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--am)">${fmt(i.subtotal)}</span>
+        </div>
+        ${salsasStr}${adicionesStr}${notaStr}
+      </div>`;
+    }).join('');
+
     const card=document.createElement('div'); card.className=`pcard ${p.tipo}`;
     card.innerHTML=`
       <div class="pc-head">
         <span class="pc-num">#${p.numero}</span>
         <span class="pc-time">${p.hora}</span>
-        <span class="pc-tipo ${p.tipo==='domicilio'?'dom':'pun'}">${p.tipo==='domicilio'?'🛵':'🏪'}</span>
+        <span class="pc-tipo ${p.tipo==='domicilio'?'dom':'pun'}">${p.tipo==='domicilio'?'🛵 Dom':'🏪 Punto'}</span>
       </div>
-      <div class="pc-cli">${p.tipo==='domicilio'?'📍':'👤'} ${p.cliente}</div>
-      ${p.domicilioFee>0?`<div style="font-size:9px;background:rgba(30,136,229,.12);color:var(--az);border:1px solid var(--az);border-radius:4px;padding:1px 6px;display:inline-block;margin-bottom:3px">🛵 Domicilio: ${fmt(p.domicilioFee)}</div>`:''}
-      <div class="pc-items">${resumen}</div>
+      <div class="pc-cli" style="margin-bottom:6px">${p.tipo==='domicilio'?'📍':'👤'} <strong>${p.cliente}</strong></div>
+      ${p.domicilioFee>0?`<div style="font-size:9px;background:rgba(30,136,229,.12);color:var(--az);border:1px solid var(--az);border-radius:4px;padding:2px 7px;display:inline-block;margin-bottom:6px">🛵 Domicilio: ${fmt(p.domicilioFee)}</div>`:''}
+      <div style="margin-bottom:6px">${itemsHTML}</div>
       <div class="pc-foot">
         <div><div class="pc-total">${fmt(p.total)}</div><div class="pc-pagos">${pagoStr}</div></div>
         <div class="pc-btns">
