@@ -1073,6 +1073,14 @@ function cargarEstado() {
         });
       });
     }
+    // Re-vincular activos a los mismos objetos del historial
+    // (tras JSON.parse son copias independientes)
+    ['99','43'].forEach(s => {
+      activos[s] = activos[s].map(a => {
+        const hObj = historial[s].find(h => h.numero === a.numero);
+        return hObj || a;
+      });
+    });
     console.log('Estado restaurado desde localStorage:', estado.savedAt);
     return true;
   } catch(e) {
@@ -1586,10 +1594,16 @@ function renderActivos(){
   }
 }
 function marcarEntregado(num){
-  const p=activos[sede].find(x=>x.numero===num); if(!p) return;
-  p.estado='entregado'; activos[sede]=activos[sede].filter(x=>x.numero!==num);
-  // Sync estado entregado a Sheets
-  syncSheets({ ...p, tipo:'pedido', entrega:p.tipo });
+  const pActivo=activos[sede].find(x=>x.numero===num); if(!pActivo) return;
+  // Actualizar estado en activos
+  pActivo.estado='entregado';
+  // Actualizar estado en historial también (son objetos distintos tras JSON.parse)
+  const pHist=historial[sede].find(x=>x.numero===num);
+  if(pHist) pHist.estado='entregado';
+  // Quitar de activos
+  activos[sede]=activos[sede].filter(x=>x.numero!==num);
+  // Sync a Sheets
+  syncSheets({ ...pActivo, tipo:'pedido', entrega:pActivo.tipo });
   updateStats(); renderActivos(); guardarEstado(); showToast(`✅ Pedido #${num} entregado`);
 }
 
