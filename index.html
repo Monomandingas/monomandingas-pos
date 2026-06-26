@@ -1082,9 +1082,12 @@ function limpiarEstadoLocal() {
 }
 
 function verificarBloqueo(sedeActual) {
+  // No mostrar pantalla bloqueada si el PIN screen aún está visible
+  const pinScreen = document.getElementById('pin-screen');
+  if (pinScreen && pinScreen.style.display !== 'none') return;
+
   const ap = apertura[sedeActual];
   if (!ap.abierta) {
-    // Mostrar pantalla bloqueada
     document.getElementById('blocked-screen').style.display = 'flex';
     document.getElementById('blocked-sede-label').textContent = `Sede La ${sedeActual}`;
   } else {
@@ -2094,13 +2097,9 @@ function renderInventario(s) {
         '</div>' +
         '<div class="inv-progress"><div class="inv-progress-fill" style="width:' + pct + '%;background:' + barColor + '"></div></div>' +
         // Inline edit row
-        '<div style="display:flex;gap:5px;margin-top:8px;align-items:center">' +
-          '<input type="number" id="inp-' + ing.id + '" placeholder="Nueva cantidad" min="0" ' +
-            'style="flex:1;background:var(--ng);border:1px solid var(--gb);border-radius:5px;padding:4px 7px;color:var(--bl);font-size:11px;font-family:Inter,sans-serif;outline:none" ' +
-            'onfocus="this.style.borderColor='var(--am)'" onblur="this.style.borderColor='var(--gb)'">' +
-          '<button onclick="ajusteRapido('' + ing.id + '','' + s + '')" ' +
-            'style="padding:4px 9px;background:var(--am);border:none;color:var(--ng);border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap">' +
-            '✔ Set</button>' +
+        '<div style="display:flex;gap:5px;margin-top:8px">' +
+          '<input type="number" id="inp-' + ing.id + '" placeholder="Cantidad" min="0" style="flex:1;background:#111;border:1px solid #444;border-radius:5px;padding:4px 7px;color:#fff;font-size:11px;outline:none">' +
+          '<button onclick="ajusteRapido(' + "'" + '" + ing.id + "' + "'" + ',' + "'" + '" + s + "' + "'" + ')" style="padding:4px 9px;background:#F5C800;border:none;color:#000;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer">Set</button>' +
         '</div>' +
       '</div>';
     }).join('');
@@ -2625,8 +2624,7 @@ function exportarInventarioExcel() {
        (a.diferencia > 0 ? '+' : '') + a.diferencia,
        a.motivo].join(',')
     )
-  ].join('
-');
+  ].join('\n');
 
   // Descargar
   const BOM = '﻿'; // UTF-8 BOM para que Excel abra bien tildes
