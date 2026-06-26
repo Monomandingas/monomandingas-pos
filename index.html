@@ -929,9 +929,12 @@ const COSTOS = {
   'P04':{costo:9100,margen:.173},   // MandiQueso
   'P05':{costo:9014,margen:.181},   // MandiTocineta
   'P06':{costo:10397,margen:.168},  // MandiBurger
-  'P07':{costo:9157,margen:.237},   // Longui/ChorPapas
-  'P08':{costo:11170,margen:.202},  // Longui/ChorEspecial
-  'P09':{costo:12844,margen:.197},  // Longui/ChorYumbo
+  'P07L':{costo:9157,margen:.237},  // LonguiPapas
+  'P07C':{costo:9157,margen:.237},  // ChoriPapas
+  'P08L':{costo:11170,margen:.202}, // LonguiEspecial
+  'P08C':{costo:11170,margen:.202}, // ChoriEspecial
+  'P09L':{costo:12844,margen:.197}, // LonguiYumbo
+  'P09C':{costo:12844,margen:.197}, // ChoriYumbo
   'P10':{costo:8402,margen:.236},   // MiniPollo
   'P11':{costo:10050,margen:.227},  // MandiPollo
   'P12':{costo:12601,margen:.213},  // MandiCarne
@@ -970,9 +973,12 @@ const MENU = [
     {id:'P04',n:'MandiQueso',d:'Papas, queso, 2 salchichas, 2 huevos, 2 choricitos',p:11000},
     {id:'P05',n:'MandiTocineta',d:'Papas, tocineta, 2 salchichas, 2 huevos, 2 chorizo coctel',p:11000},
     {id:'P06',n:'MandiBurger',d:'Papas, arepa con carne de hamburguesa, queso, 1 huevo',p:12500},
-    {id:'P07',n:'Longui/ChorPapas',d:'Papas, 1 longaniza o 1 chorizo ternera y 2 huevos de codorniz',p:12000},
-    {id:'P08',n:'Longui/ChorEspecial',d:'Papas, 1 longaniza o 1 chorizo ternera, 1 huevo, 1 salchicha y 1 choricito',p:14000},
-    {id:'P09',n:'Longui/ChorYumbo',d:'Papas, 1 longaniza o 1 chorizo ternera, 2 huevos, 2 salchichas y 2 choricitos',p:16000},
+    {id:'P07L',n:'LonguiPapas',d:'Papas, 1 longaniza y 2 huevos de codorniz',p:12000},
+    {id:'P07C',n:'ChoriPapas',d:'Papas, 1 chorizo de ternera y 2 huevos de codorniz',p:12000},
+    {id:'P08L',n:'LonguiEspecial',d:'Papas, 1 longaniza, 1 huevo, 1 salchicha y 1 choricito',p:14000},
+    {id:'P08C',n:'ChoriEspecial',d:'Papas, 1 chorizo de ternera, 1 huevo, 1 salchicha y 1 choricito',p:14000},
+    {id:'P09L',n:'LonguiYumbo',d:'Papas, 1 longaniza, 2 huevos, 2 salchichas y 2 choricitos',p:16000},
+    {id:'P09C',n:'ChoriYumbo',d:'Papas, 1 chorizo de ternera, 2 huevos, 2 salchichas y 2 choricitos',p:16000},
     {id:'P10',n:'MiniPollo',d:'Papas, pollo desmechado y 1 huevo',p:11000},
     {id:'P11',n:'MandiPollo',d:'Papas, pollo desmechado, 1 huevo, 1 salchicha y 1 choricito',p:13000},
     {id:'P12',n:'MandiCarne',d:'Papas, carne desmechada, 1 huevo, 1 salchicha, 1 choricito',p:16000},
@@ -1824,12 +1830,13 @@ function ejecutarCierreTurno(){
     }));
   } catch(e){}
 
-  // Limpiar datos del turno
+  // Limpiar datos del turno — el stock NO se resetea, persiste entre turnos
   historial[sede] = [];
   activos[sede] = [];
   gastos[sede] = [];
   pedidoCounter = 1;
   apertura[sede] = {abierta:false, base:0, hora:''};
+  // comprasHistorial se mantiene para tener historial completo
 
   // Actualizar UI
   guardarEstado();
@@ -1957,9 +1964,12 @@ const RECETAS = {
   'P04': [{id:'papa',qty:3},{id:'salchicha',qty:2},{id:'huevo_cod',qty:2},{id:'chorizo_coc',qty:2},{id:'queso',qty:2}],
   'P05': [{id:'papa',qty:3},{id:'salchicha',qty:2},{id:'huevo_cod',qty:2},{id:'chorizo_coc',qty:2},{id:'tocineta',qty:1}],
   'P06': [{id:'papa',qty:3},{id:'huevo_cod',qty:1},{id:'arepa',qty:1},{id:'carne_burg',qty:1},{id:'queso',qty:1}],
-  'P07': [{id:'papa',qty:3},{id:'chorizo_tern',qty:1},{id:'huevo_cod',qty:2}],
-  'P08': [{id:'papa',qty:3},{id:'chorizo_tern',qty:1},{id:'huevo_cod',qty:1},{id:'salchicha',qty:1},{id:'chorizo_coc',qty:1}],
-  'P09': [{id:'papa',qty:3},{id:'chorizo_tern',qty:1},{id:'huevo_cod',qty:2},{id:'salchicha',qty:2},{id:'chorizo_coc',qty:2}],
+  'P07L': [{id:'papa',qty:3},{id:'longaniza',qty:1},{id:'huevo_cod',qty:2}],
+  'P07C': [{id:'papa',qty:3},{id:'chorizo_tern',qty:1},{id:'huevo_cod',qty:2}],
+  'P08L': [{id:'papa',qty:3},{id:'longaniza',qty:1},{id:'huevo_cod',qty:1},{id:'salchicha',qty:1},{id:'chorizo_coc',qty:1}],
+  'P08C': [{id:'papa',qty:3},{id:'chorizo_tern',qty:1},{id:'huevo_cod',qty:1},{id:'salchicha',qty:1},{id:'chorizo_coc',qty:1}],
+  'P09L': [{id:'papa',qty:3},{id:'longaniza',qty:1},{id:'huevo_cod',qty:2},{id:'salchicha',qty:2},{id:'chorizo_coc',qty:2}],
+  'P09C': [{id:'papa',qty:3},{id:'chorizo_tern',qty:1},{id:'huevo_cod',qty:2},{id:'salchicha',qty:2},{id:'chorizo_coc',qty:2}],
   'P10': [{id:'papa',qty:3},{id:'huevo_cod',qty:1},{id:'pollo_desmech',qty:45}],
   'P11': [{id:'papa',qty:3},{id:'huevo_cod',qty:1},{id:'salchicha',qty:1},{id:'chorizo_coc',qty:1},{id:'pollo_desmech',qty:60}],
   'P12': [{id:'papa',qty:3},{id:'huevo_cod',qty:1},{id:'salchicha',qty:1},{id:'chorizo_coc',qty:1},{id:'carne_desmech',qty:130}],
@@ -2038,10 +2048,10 @@ function renderInventario(s) {
 
   function buildCards(lista) {
     return lista.map(function(ing) {
-      const qty    = st[ing.id] || 0;
-      const estado = qty <= 0 ? 'out' : qty <= ing.minAlert ? 'low' : 'ok';
-      const badge  = estado === 'out' ? '🔴 AGOTADO' : estado === 'low' ? '⚠️ BAJO' : '✅ OK';
-      const pct    = ing.minAlert > 0 ? Math.min(100, Math.round((qty / (ing.minAlert * 3)) * 100)) : 100;
+      const qty      = st[ing.id] || 0;
+      const estado   = qty <= 0 ? 'out' : qty <= ing.minAlert ? 'low' : 'ok';
+      const badge    = estado === 'out' ? '🔴 AGOTADO' : estado === 'low' ? '⚠️ BAJO' : '✅ OK';
+      const pct      = ing.minAlert > 0 ? Math.min(100, Math.round((qty / (ing.minAlert * 3)) * 100)) : 100;
       const barColor = estado === 'ok' ? 'var(--ve)' : estado === 'low' ? 'var(--na)' : 'var(--ro)';
       const qtyDisplay = ing.uom === 'g'
         ? (qty >= 1000 ? (qty / 1000).toFixed(2) + ' kg' : qty + ' g')
@@ -2049,12 +2059,21 @@ function renderInventario(s) {
       return '<div class="inv-card ' + estado + '">' +
         '<div class="inv-card-badge badge-' + estado + '">' + badge + '</div>' +
         '<div class="inv-card-name">' + ing.nombre + '</div>' +
-        '<div class="inv-card-unit">Unidad: ' + ing.uom + ' · Mínimo: ' + ing.minAlert + ' ' + ing.uom + '</div>' +
+        '<div class="inv-card-unit">Unidad: ' + ing.uom + ' · Alerta: ' + ing.minAlert + ' ' + ing.uom + '</div>' +
         '<div class="inv-card-stock">' +
           '<div class="inv-card-qty ' + estado + '">' + qtyDisplay + '</div>' +
           '<div class="inv-card-uom">' + ing.uom + '</div>' +
         '</div>' +
         '<div class="inv-progress"><div class="inv-progress-fill" style="width:' + pct + '%;background:' + barColor + '"></div></div>' +
+        // Inline edit row
+        '<div style="display:flex;gap:5px;margin-top:8px;align-items:center">' +
+          '<input type="number" id="inp-' + ing.id + '" placeholder="Nueva cantidad" min="0" ' +
+            'style="flex:1;background:var(--ng);border:1px solid var(--gb);border-radius:5px;padding:4px 7px;color:var(--bl);font-size:11px;font-family:Inter,sans-serif;outline:none" ' +
+            'onfocus="this.style.borderColor='var(--am)'" onblur="this.style.borderColor='var(--gb)'">' +
+          '<button onclick="ajusteRapido('' + ing.id + '','' + s + '')" ' +
+            'style="padding:4px 9px;background:var(--am);border:none;color:var(--ng);border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap">' +
+            '✔ Set</button>' +
+        '</div>' +
       '</div>';
     }).join('');
   }
@@ -2062,7 +2081,9 @@ function renderInventario(s) {
   const ingredientes = INSUMOS_DEF.filter(function(i){ return !i.id.startsWith('beb_'); });
   const bebidas      = INSUMOS_DEF.filter(function(i){ return i.id.startsWith('beb_'); });
 
+  // Mostrar sede activa en el header del inventario
   document.getElementById('inv-body').innerHTML =
+    '<div style="font-size:11px;color:var(--ts);margin-bottom:10px">💡 Ingresa la cantidad en el campo de cada producto y presiona <strong style=\'color:var(--am)\'>✔ Set</strong> para actualizar el stock.</div>' +
     '<div class="inv-section-title">🧂 INGREDIENTES (' + ingredientes.length + ')</div>' +
     '<div class="inv-grid">' + buildCards(ingredientes) + '</div>' +
     '<div class="inv-section-title">🥤 BEBIDAS (' + bebidas.length + ')</div>' +
@@ -2073,6 +2094,27 @@ function renderInventario(s) {
 // ═══════════════════════════════════════════════
 //  AJUSTE MANUAL DE INVENTARIO
 // ═══════════════════════════════════════════════
+function ajusteRapido(insumoId, sede) {
+  const inp = document.getElementById('inp-' + insumoId);
+  const nuevo = parseInt(inp.value);
+  if (isNaN(nuevo) || nuevo < 0) {
+    inp.style.borderColor = 'var(--ro)';
+    setTimeout(() => inp.style.borderColor = 'var(--gb)', 1500);
+    return;
+  }
+  const def = INSUMOS_DEF.find(d => d.id === insumoId);
+  const anterior = stock[sede][insumoId] || 0;
+  stock[sede][insumoId] = nuevo;
+  ajustesLog[sede].push({
+    hora: now(), fecha: hoy(), insumo: def.nombre,
+    anterior, nuevo, diferencia: nuevo - anterior, motivo: 'Ajuste rápido desde inventario'
+  });
+  inp.value = '';
+  guardarEstado();
+  renderInventario(sede);
+  showToast('✅ ' + def.nombre + ': ' + nuevo + ' ' + def.uom);
+}
+
 function abrirAjusteInventario() {
   document.getElementById('ajuste-sub').textContent = `Corrección manual · La ${invSede}`;
   const sel = document.getElementById('ajuste-insumo');
@@ -2102,6 +2144,7 @@ function confirmarAjuste() {
     anterior, nuevo, diferencia: nuevo - anterior, motivo
   });
   cerrarAjuste();
+  guardarEstado();
   renderInventario(invSede);
   showToast(`✅ ${def.nombre} ajustado a ${nuevo} ${def.uom}`);
 }
