@@ -1843,6 +1843,14 @@ function registrarCompra() {
     cantidad, valor, proveedor, nota
   });
 
+  // Sync a Google Sheets
+  syncSheets({
+    tipo: 'compra',
+    fecha: hoy(), hora: now(), sede: comprasSede,
+    insumoId, insumoNombre: insumoNombre.split(' (')[0],
+    cantidad, valor, proveedor, nota
+  });
+
   // Limpiar form
   document.getElementById('compra-cantidad').value = '';
   document.getElementById('compra-valor').value = '';
