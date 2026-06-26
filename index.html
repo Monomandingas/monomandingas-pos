@@ -649,6 +649,7 @@ body{font-family:'Inter',sans-serif;background:var(--ng);color:var(--bl);min-hei
         <button class="inv-sede-btn" onclick="setInvSede('43')" id="ibtn43">LA 43</button>
       </div>
       <button class="btn-ajustar" onclick="abrirAjusteInventario()">⚙️ Ajustar stock</button>
+      <button class="btn-ajustar" onclick="exportarInventarioExcel()" style="background:var(--ve);margin-left:4px">⬇️ Exportar Excel</button>
     </div>
   </div>
   <div id="inv-stats-bar"></div>
@@ -2532,6 +2533,82 @@ function renderHistorialCierres(cierres) {
         }).join('')}
       </tbody>
     </table>`;
+}
+
+// ═══════════════════════════════════════════════
+//  EXPORTAR INVENTARIO A EXCEL (CSV)
+// ═══════════════════════════════════════════════
+function exportarInventarioExcel() {
+  const st = stock[invSede];
+  const fecha = hoy().replace(/\//g,'-');
+
+  // Encabezados
+  const headers = ['Insumo','Unidad','Stock Actual','Stock Mínimo (Alerta)','Estado','Sede','Fecha'];
+
+  // Filas — todos los insumos
+  const rows = INSUMOS_DEF.map(ing => {
+    const qty = st[ing.id] || 0;
+    const estado = qty <= 0 ? 'AGOTADO' : qty <= ing.minAlert ? 'STOCK BAJO' : 'OK';
+    const qtyDisplay = ing.uom === 'g'
+      ? (qty >= 1000 ? (qty/1000).toFixed(3) + ' kg' : qty + ' g')
+      : qty;
+    return [
+      ing.nombre,
+      ing.uom,
+      qtyDisplay,
+      ing.minAlert + ' ' + ing.uom,
+      estado,
+      'La ' + invSede,
+      fecha
+    ].join(',');
+  });
+
+  // Separador entre ingredientes y bebidas
+  const ingredientes = INSUMOS_DEF.filter(i => !i.id.startsWith('beb_'));
+  const bebidas = INSUMOS_DEF.filter(i => i.id.startsWith('beb_'));
+  const rowsIng = ingredientes.map(ing => {
+    const qty = st[ing.id] || 0;
+    const estado = qty <= 0 ? 'AGOTADO' : qty <= ing.minAlert ? 'STOCK BAJO' : 'OK';
+    const qtyDisplay = ing.uom === 'g'
+      ? (qty >= 1000 ? (qty/1000).toFixed(3) + ' kg' : qty + ' g')
+      : qty;
+    return [ing.nombre, ing.uom, qtyDisplay, ing.minAlert + ' ' + ing.uom, estado, 'La ' + invSede, fecha].join(',');
+  });
+  const rowsBeb = bebidas.map(ing => {
+    const qty = st[ing.id] || 0;
+    const estado = qty <= 0 ? 'AGOTADO' : qty <= ing.minAlert ? 'STOCK BAJO' : 'OK';
+    return [ing.nombre, ing.uom, qty, ing.minAlert + ' ' + ing.uom, estado, 'La ' + invSede, fecha].join(',');
+  });
+
+  const csv = [
+    'INVENTARIO MONOMANDINGAS — LA ' + invSede + ' — ' + fecha,
+    '',
+    'INGREDIENTES',
+    headers.join(','),
+    ...rowsIng,
+    '',
+    'BEBIDAS',
+    headers.join(','),
+    ...rowsBeb,
+    '',
+    'AJUSTES DEL TURNO',
+    'Hora,Insumo,Stock Anterior,Stock Nuevo,Diferencia,Motivo',
+    ...(ajustesLog[invSede] || []).map(a =>
+      [a.hora, a.insumo, a.anterior, a.nuevo,
+       (a.diferencia > 0 ? '+' : '') + a.diferencia,
+       a.motivo].join(',')
+    )
+  ].join('
+');
+
+  // Descargar
+  const BOM = '﻿'; // UTF-8 BOM para que Excel abra bien tildes
+  const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'inventario_la' + invSede + '_' + fecha + '.csv';
+  a.click();
+  showToast('📥 Inventario exportado · La ' + invSede);
 }
 
 window.onload=()=>{
