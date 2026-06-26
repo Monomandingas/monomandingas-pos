@@ -1014,6 +1014,7 @@ const PAGOS_SEDE = {
 let sede='99', tipoPedido='punto', pedidoItems=[], pedidoCounter=1;
 let historial={'99':[],'43':[]}, activos={'99':[],'43':[]};
 let mProd=null, mSalsas=[], mAdiciones={};
+let editandoPedidoNum=null; // número de pedido siendo editado (null = nuevo pedido)
 let anularPedidoId=null, editPagoId=null;
 let rptSede='99';
 // Apertura de caja y gastos por sede
@@ -1292,10 +1293,72 @@ function editarItem(idx){
 }
 function limpiarPedido(){
   pedidoItems=[];
+  editandoPedidoNum=null;
   document.getElementById('cli-input').value='';
   const feeInp=document.getElementById('domicilio-fee');
   if(feeInp) feeInp.value='';
+  // Restaurar label del botón confirmar
+  document.getElementById('btn-confirm').textContent='CONFIRMAR PEDIDO';
+  document.getElementById('btn-confirm').style.background='';
+  document.getElementById('orden-num').textContent='#'+String(pedidoCounter).padStart(3,'0');
   limpiarPagos(); renderPedido();
+}
+
+// ── Editar pedido activo (pendiente) ──────────────────────
+function editarPedidoActivo(num) {
+  const p = activos[sede].find(x=>x.numero===num);
+  if (!p) return;
+
+  // Guardar referencia al pedido siendo editado
+  editandoPedidoNum = num;
+
+  // Cargar datos del pedido en el panel de nuevo pedido
+  setTipo(p.tipo);
+  document.getElementById('cli-input').value = p.cliente === 'Sin nombre' || p.cliente === 'Sin dirección' ? '' : p.cliente;
+
+  // Cargar fee de domicilio si aplica
+  if (p.domicilioFee > 0) {
+    const feeInp = document.getElementById('domicilio-fee');
+    if (feeInp) feeInp.value = p.domicilioFee;
+  }
+
+  // Reconstruir pedidoItems desde el pedido guardado
+  pedidoItems = p.items.map(i => {
+    // Buscar el producto en el menú activo
+    const menuActivo = getMenuActivo();
+    let prod = null;
+    menuActivo.forEach(cat => cat.items.forEach(item => { if(item.id === i.id) prod = item; }));
+    if (!prod) prod = { id:i.id, n:i.nombre, d:'', p:i.subtotal/i.qty };
+    return {
+      id: Date.now() + Math.random(),
+      producto: prod,
+      qty: i.qty,
+      salsas: i.salsas || [],
+      adiciones: i.adiciones || [],
+      nota: i.nota || '',
+      pBase: prod.p,
+      pAd: i.adiciones ? i.adiciones.reduce((s,a)=>s+a.qty*a.p,0) : 0
+    };
+  });
+
+  // Cargar pagos actuales
+  PAGOS_SEDE[sede].forEach(pm=>{
+    const el=document.getElementById('pi-'+pm.k);
+    if(el) el.value = p.pagos[pm.k] || '';
+  });
+
+  // Cambiar botón a "ACTUALIZAR"
+  const btn = document.getElementById('btn-confirm');
+  btn.textContent = 'ACTUALIZAR #'+num;
+  btn.style.background = '#00BCD4';
+
+  // Mostrar número de pedido siendo editado
+  document.getElementById('orden-num').textContent = '#'+String(num).padStart(3,'0') + ' ✏️';
+
+  renderPedido();
+  // Scroll al panel de pedido
+  document.querySelector('.order-panel').scrollIntoView({behavior:'smooth', block:'start'});
+  showToast('✏️ Editando pedido #'+num+' — modifica y confirma');
 }
 
 // ═══════════════════════════════════════════════
@@ -1353,9 +1416,63 @@ function updatePendiente(){
 // ═══════════════════════════════════════════════
 //  CONFIRMAR PEDIDO
 // ═══════════════════════════════════════════════
+// ── Actualizar pedido activo existente ───────────────────
+function actualizarPedidoActivo(t, pagos) {
+  const num = editandoPedidoNum;
+  const pActivo = activos[sede].find(x=>x.numero===num);
+  const pHist   = historial[sede].find(x=>x.numero===num);
+  if (!pActivo || !pHist) return;
+
+  const vuelta = Math.max(0, Object.values(pagos).reduce((s,v)=>s+v,0)-t);
+  const cliente = document.getElementById('cli-input').value.trim() ||
+    (tipoPedido==='domicilio'?'Sin dirección':'Sin nombre');
+
+  // Actualizar datos del pedido
+  const nuevosItems = pedidoItems.map(i=>({
+    nombre:i.producto.n, id:i.producto.id, qty:i.qty,
+    salsas:i.salsas, adiciones:i.adiciones, nota:i.nota,
+    subtotal:(i.pBase+i.pAd)*i.qty
+  }));
+
+  [pActivo, pHist].forEach(p => {
+    p.items   = nuevosItems;
+    p.total   = t;
+    p.subtotalProductos = pedidoItems.reduce((s,i)=>s+(i.pBase+i.pAd)*i.qty,0);
+    p.domicilioFee = getDomicilioFee();
+    p.pagos   = {...pagos};
+    p.vueltaDada = vuelta;
+    p.tipo    = tipoPedido;
+    p.cliente = cliente;
+    p.horaEdicion = now();
+  });
+
+  // Descontar inventario con la diferencia
+  const itemsParaInventario = pedidoItems.map(i=>({id:i.producto.id, qty:i.qty}));
+  descontarInventario(itemsParaInventario, sede);
+
+  // Sync a Sheets
+  syncSheets({ ...pHist, tipo:'pedido', entrega:pHist.tipo });
+
+  editandoPedidoNum = null;
+  const btn = document.getElementById('btn-confirm');
+  btn.textContent = 'CONFIRMAR PEDIDO';
+  btn.style.background = '';
+  document.getElementById('orden-num').textContent='#'+String(pedidoCounter).padStart(3,'0');
+
+  updateStats(); renderActivos(); guardarEstado(); limpiarPedido();
+  showToast('✅ Pedido #'+num+' actualizado');
+}
+
 function confirmarPedido(){
   const t=calcTotal(); const pagos=getPagos();
   if(pedidoItems.length===0||Object.values(pagos).reduce((s,v)=>s+v,0)<t) return;
+
+  // Modo edición: actualizar pedido existente en lugar de crear uno nuevo
+  if (editandoPedidoNum !== null) {
+    actualizarPedidoActivo(t, pagos);
+    return;
+  }
+
   const pedido={
     numero:pedidoCounter++, hora:now(), fecha:hoy(), sede, tipo:tipoPedido,
     cliente:document.getElementById('cli-input').value.trim()||(tipoPedido==='domicilio'?'Sin dirección':'Sin nombre'),
@@ -1414,8 +1531,9 @@ function buildPedidoCard(p, isEntregado) {
   if (isEntregado) card.style.opacity = '0.75';
 
   const btns = isEntregado
-    ? '<button class="btn-edit-pago" onclick="abrirEditPagoHistorial('+p.numero+')" title="Editar pago">✏️ Editar pago</button>'
-    : '<button class="btn-edit-pago" onclick="abrirEditPago('+p.numero+')" title="Editar pago">✏️</button>' +
+    ? '<button class="btn-edit-pago" onclick="abrirEditPagoHistorial('+p.numero+')" title="Editar pago">✏️ Pago</button>'
+    : '<button class="btn-edit-pago" onclick="editarPedidoActivo('+p.numero+')" style="color:#00BCD4;border-color:#00BCD4">✏️ Editar</button>' +
+      '<button class="btn-edit-pago" onclick="abrirEditPago('+p.numero+')" title="Editar pago">💰</button>' +
       '<button class="btn-anular-sm" onclick="abrirAnularModal('+p.numero+')">✕</button>' +
       '<button class="btn-entregar" onclick="marcarEntregado('+p.numero+')">✅</button>';
 
