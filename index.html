@@ -1017,6 +1017,9 @@ let rptSede='99';
 let apertura={'99':{abierta:false,base:0,hora:''},'43':{abierta:false,base:0,hora:''}};
 let gastos={'99':[],'43':[]};
 
+// Menú dinámico — se carga desde Sheets
+let menuCache = null; // null = usar menú hardcoded como fallback
+
 // ═══════════════════════════════════════════════
 //  PERSISTENCIA — localStorage
 // ═══════════════════════════════════════════════
@@ -1033,6 +1036,8 @@ function guardarEstado() {
     comprasHistorial,
     stock,
     ajustesLog,
+    menuCache,
+    menuCacheAt: new Date().toISOString(),
     savedAt: new Date().toISOString()
   };
   try {
@@ -1055,6 +1060,7 @@ function cargarEstado() {
     gastos         = estado.gastos         || {'99':[],'43':[]};
     comprasHistorial = estado.comprasHistorial || {'99':[],'43':[]};
     ajustesLog     = estado.ajustesLog     || {'99':[],'43':[]};
+    if (estado.menuCache) menuCache = estado.menuCache;
     // Restaurar stock — merge con defaults para nuevos insumos
     if (estado.stock) {
       Object.keys(estado.stock).forEach(s => {
@@ -1148,9 +1154,30 @@ function setTipo(t) {
 // ═══════════════════════════════════════════════
 //  MENÚ RENDER
 // ═══════════════════════════════════════════════
+function getMenuActivo() {
+  // Si hay caché de Sheets, usarlo; si no, usar el hardcoded
+  if (menuCache && menuCache.length) {
+    // Convertir formato Sheets al formato interno
+    const cats = {};
+    menuCache.forEach(p => {
+      if (String(p.activo).toLowerCase() === 'false') return; // desactivados
+      const cat = p.categoria || '🍟 PERSONALES';
+      if (!cats[cat]) cats[cat] = [];
+      cats[cat].push({
+        id: p.id, n: p.nombre, d: p.descripcion,
+        p: Number(p.precio)
+      });
+    });
+    return Object.entries(cats).map(([cat, items]) => ({ cat, items }));
+  }
+  // Fallback: menú hardcoded
+  return MENU.map(c => ({ cat: c.cat, items: c.items.map(i => ({id:i.id,n:i.n,d:i.d,p:i.p})) }));
+}
+
 function renderMenu() {
   const p=document.getElementById('menu-panel'); p.innerHTML='';
-  MENU.forEach(cat=>{
+  const menuActivo = getMenuActivo();
+  menuActivo.forEach(cat=>{
     const t=document.createElement('div'); t.className='cat-title'; t.textContent=cat.cat; p.appendChild(t);
     const g=document.createElement('div'); g.className='prod-grid';
     cat.items.forEach(prod=>{
@@ -2611,6 +2638,26 @@ function exportarInventarioExcel() {
   showToast('📥 Inventario exportado · La ' + invSede);
 }
 
+// ═══════════════════════════════════════════════
+//  MENÚ DINÁMICO DESDE SHEETS
+// ═══════════════════════════════════════════════
+async function cargarMenuDesdeSheets() {
+  try {
+    const url = SHEETS_URL + '?payload=' + encodeURIComponent(JSON.stringify({tipo:'getMenu'}));
+    const resp = await fetch(url, { mode:'cors' });
+    const data = await resp.json();
+    if (data.ok && data.productos && data.productos.length) {
+      menuCache = data.productos;
+      guardarEstado();
+      renderMenu(); // re-renderizar con datos frescos
+      console.log('Menú cargado desde Sheets:', data.productos.length, 'productos');
+    }
+  } catch(e) {
+    // Sin internet o CORS — usar caché local o menú hardcoded (ya cargado)
+    console.log('Usando menú local (sin conexión a Sheets)');
+  }
+}
+
 window.onload=()=>{
   // Cargar estado guardado
   cargarEstado();
@@ -2618,6 +2665,9 @@ window.onload=()=>{
   renderPagoGrid();
   updateStats();
   renderActivos();
+
+  // Cargar menú actualizado desde Sheets en segundo plano
+  cargarMenuDesdeSheets();
 
   // Verificar si hay apertura activa para la sede actual
   verificarBloqueo(sede);
