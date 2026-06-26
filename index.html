@@ -617,11 +617,14 @@ body{font-family:'Inter',sans-serif;background:var(--ng);color:var(--bl);min-hei
   <!-- PEDIDOS ACTIVOS -->
   <div class="active-panel">
     <div class="ap-head">
-      <span class="ap-title">ACTIVOS</span>
-      <span class="ap-count" id="ap-count">0</span>
+      <span class="ap-title">PEDIDOS</span>
+      <div style="display:flex;gap:5px">
+        <span class="ap-count" id="ap-count" title="Pendientes">0 🟡</span>
+        <span class="ap-count" id="ap-count-ent" style="background:rgba(67,160,71,.12);color:var(--ve);border-color:var(--ve)" title="Entregados">0 ✅</span>
+      </div>
     </div>
     <div class="ap-list" id="ap-list">
-      <div class="ap-empty"><div style="font-size:28px;opacity:.4">📋</div><div>Sin pedidos pendientes</div></div>
+      <div class="ap-empty"><div style="font-size:28px;opacity:.4">📋</div><div>Sin pedidos en el turno</div></div>
     </div>
   </div>
 
@@ -1385,60 +1388,90 @@ function confirmarPedido(){
 // ═══════════════════════════════════════════════
 //  ACTIVOS
 // ═══════════════════════════════════════════════
+function buildPedidoCard(p, isEntregado) {
+  const pagoStr=Object.entries(p.pagos).filter(([,v])=>v>0).map(([k,v])=>`${k.toUpperCase()}: ${fmt(v)}`).join(' · ');
+  const itemsHTML = p.items.map(function(i) {
+    const salsasStr = i.salsas && i.salsas.length
+      ? '<div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:3px">' +
+        i.salsas.map(s=>'<span style="font-size:9px;padding:1px 5px;border-radius:6px;background:rgba(245,200,0,.12);border:1px solid #F5C800;color:#F5C800">'+s+'</span>').join('') +
+        '</div>' : '';
+    const adicionesStr = i.adiciones && i.adiciones.length
+      ? '<div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:3px">' +
+        i.adiciones.map(a=>'<span style="font-size:9px;padding:1px 5px;border-radius:6px;background:rgba(251,140,0,.12);border:1px solid #FB8C00;color:#FB8C00">+'+a.qty+' '+(a.n||a.nombre)+'</span>').join('') +
+        '</div>' : '';
+    const notaStr = i.nota ? '<div style="font-size:9px;color:#AAA;margin-top:2px;font-style:italic">📝 '+i.nota+'</div>' : '';
+    return '<div style="background:#0D0D0D;border:1px solid #333;border-radius:6px;padding:7px 9px;margin-bottom:5px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center">' +
+        '<span style="font-size:12px;font-weight:700">'+i.qty+'× '+i.nombre+'</span>' +
+        '<span style="font-family:Bebas Neue,sans-serif;font-size:13px;color:#F5C800">'+fmt(i.subtotal)+'</span>' +
+      '</div>' + salsasStr + adicionesStr + notaStr + '</div>';
+  }).join('');
+
+  const tipoCls = p.tipo==='domicilio'?'dom':'pun';
+  const tipoLabel = p.tipo==='domicilio'?'🛵 Dom':'🏪 Punto';
+  const card = document.createElement('div');
+  card.className = 'pcard ' + p.tipo;
+  if (isEntregado) card.style.opacity = '0.75';
+
+  const btns = isEntregado
+    ? '<button class="btn-edit-pago" onclick="abrirEditPagoHistorial('+p.numero+')" title="Editar pago">✏️ Editar pago</button>'
+    : '<button class="btn-edit-pago" onclick="abrirEditPago('+p.numero+')" title="Editar pago">✏️</button>' +
+      '<button class="btn-anular-sm" onclick="abrirAnularModal('+p.numero+')">✕</button>' +
+      '<button class="btn-entregar" onclick="marcarEntregado('+p.numero+')">✅</button>';
+
+  card.innerHTML =
+    '<div class="pc-head">' +
+      '<span class="pc-num">#'+p.numero+'</span>' +
+      '<span class="pc-time">'+p.hora+'</span>' +
+      '<span class="pc-tipo '+tipoCls+'">'+tipoLabel+'</span>' +
+    '</div>' +
+    '<div class="pc-cli" style="margin-bottom:6px">'+(p.tipo==='domicilio'?'📍':'👤')+' <strong>'+p.cliente+'</strong></div>' +
+    (p.domicilioFee>0?'<div style="font-size:9px;background:rgba(30,136,229,.12);color:#1E88E5;border:1px solid #1E88E5;border-radius:4px;padding:2px 7px;display:inline-block;margin-bottom:6px">🛵 Domicilio: '+fmt(p.domicilioFee)+'</div>':'') +
+    '<div style="margin-bottom:6px">'+itemsHTML+'</div>' +
+    '<div class="pc-foot">' +
+      '<div><div class="pc-total">'+fmt(p.total)+'</div><div class="pc-pagos">'+pagoStr+'</div></div>' +
+      '<div class="pc-btns">'+btns+'</div>' +
+    '</div>';
+  return card;
+}
+
 function renderActivos(){
   const list=document.getElementById('ap-list');
   const pend=activos[sede].filter(p=>p.estado==='pendiente');
-  document.getElementById('ap-count').textContent=pend.length;
-  if(!pend.length){ list.innerHTML=`<div class="ap-empty"><div style="font-size:28px;opacity:.4">📋</div><div>Sin pedidos pendientes</div></div>`; return; }
+  const entregados=historial[sede].filter(p=>p.estado==='entregado').slice().reverse();
+  document.getElementById('ap-count').textContent=pend.length+' 🟡';
+  document.getElementById('ap-count-ent').textContent=entregados.length+' ✅';
+
+  if(!pend.length && !entregados.length){
+    list.innerHTML='<div class="ap-empty"><div style="font-size:28px;opacity:.4">📋</div><div>Sin pedidos en el turno</div></div>';
+    return;
+  }
   list.innerHTML='';
-  pend.forEach(p=>{
-    const pagoStr=Object.entries(p.pagos).filter(([,v])=>v>0).map(([k,v])=>`${k.toUpperCase()}: ${fmt(v)}`).join(' · ');
+  list.innerHTML='';
 
-    // Construir detalle completo de cada ítem con salsas y adiciones
-    const itemsHTML = p.items.map(i => {
-      const salsasStr = i.salsas && i.salsas.length
-        ? '<div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:3px">' +
-          i.salsas.map(s=>`<span style="font-size:9px;padding:1px 5px;border-radius:6px;background:rgba(245,200,0,.12);border:1px solid var(--am);color:var(--am)">${s}</span>`).join('') +
-          '</div>' : '';
-      const adicionesStr = i.adiciones && i.adiciones.length
-        ? '<div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:3px">' +
-          i.adiciones.map(a=>`<span style="font-size:9px;padding:1px 5px;border-radius:6px;background:rgba(251,140,0,.12);border:1px solid var(--na);color:var(--na)">+${a.qty} ${a.n||a.nombre}</span>`).join('') +
-          '</div>' : '';
-      const notaStr = i.nota
-        ? `<div style="font-size:9px;color:var(--ts);margin-top:2px;font-style:italic">📝 ${i.nota}</div>` : '';
-      return `<div style="background:var(--ng);border:1px solid var(--gb);border-radius:6px;padding:7px 9px;margin-bottom:5px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:12px;font-weight:700">${i.qty}× ${i.nombre}</span>
-          <span style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--am)">${fmt(i.subtotal)}</span>
-        </div>
-        ${salsasStr}${adicionesStr}${notaStr}
-      </div>`;
-    }).join('');
+  // ── Sección PENDIENTES ──
+  if (pend.length) {
+    const secPend = document.createElement('div');
+    secPend.style.cssText = 'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#FB8C00;padding:4px 2px;margin-bottom:6px;border-bottom:1px solid #333';
+    secPend.textContent = '🟡 PENDIENTES (' + pend.length + ')';
+    list.appendChild(secPend);
+    pend.forEach(p => list.appendChild(buildPedidoCard(p, false)));
+  }
 
-    const card=document.createElement('div'); card.className=`pcard ${p.tipo}`;
-    card.innerHTML=`
-      <div class="pc-head">
-        <span class="pc-num">#${p.numero}</span>
-        <span class="pc-time">${p.hora}</span>
-        <span class="pc-tipo ${p.tipo==='domicilio'?'dom':'pun'}">${p.tipo==='domicilio'?'🛵 Dom':'🏪 Punto'}</span>
-      </div>
-      <div class="pc-cli" style="margin-bottom:6px">${p.tipo==='domicilio'?'📍':'👤'} <strong>${p.cliente}</strong></div>
-      ${p.domicilioFee>0?`<div style="font-size:9px;background:rgba(30,136,229,.12);color:var(--az);border:1px solid var(--az);border-radius:4px;padding:2px 7px;display:inline-block;margin-bottom:6px">🛵 Domicilio: ${fmt(p.domicilioFee)}</div>`:''}
-      <div style="margin-bottom:6px">${itemsHTML}</div>
-      <div class="pc-foot">
-        <div><div class="pc-total">${fmt(p.total)}</div><div class="pc-pagos">${pagoStr}</div></div>
-        <div class="pc-btns">
-          <button class="btn-edit-pago" onclick="abrirEditPago(${p.numero})" title="Editar pago">✏️</button>
-          <button class="btn-anular-sm" onclick="abrirAnularModal(${p.numero})">✕</button>
-          <button class="btn-entregar" onclick="marcarEntregado(${p.numero})">✅</button>
-        </div>
-      </div>`;
-    list.appendChild(card);
-  });
+  // ── Sección ENTREGADOS ──
+  if (entregados.length) {
+    const secEnt = document.createElement('div');
+    secEnt.style.cssText = 'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#43A047;padding:4px 2px;margin:10px 0 6px;border-bottom:1px solid #333';
+    secEnt.textContent = '✅ ENTREGADOS (' + entregados.length + ')';
+    list.appendChild(secEnt);
+    entregados.forEach(p => list.appendChild(buildPedidoCard(p, true)));
+  }
 }
 function marcarEntregado(num){
   const p=activos[sede].find(x=>x.numero===num); if(!p) return;
   p.estado='entregado'; activos[sede]=activos[sede].filter(x=>x.numero!==num);
+  // Sync estado entregado a Sheets
+  syncSheets({ ...p, tipo:'pedido', entrega:p.tipo });
   updateStats(); renderActivos(); guardarEstado(); showToast(`✅ Pedido #${num} entregado`);
 }
 
@@ -1467,14 +1500,44 @@ function updateEditPagoDiff(total){
   el.className='pend-val '+(diff===0||diff>0?'pend-ok':'pend-mal');
 }
 function cerrarEditPago(){ document.getElementById('editpago-overlay').classList.add('hidden'); editPagoId=null; }
+
+// Editar pago de pedido ya ENTREGADO (desde historial)
+function abrirEditPagoHistorial(num) {
+  // Buscar en historial en lugar de activos
+  const p = historial[sede].find(x => x.numero === num);
+  if (!p) return;
+  editPagoId = num;
+  document.getElementById('editpago-sub').textContent = 'Pedido #' + num + ' (entregado) · Total: ' + fmt(p.total);
+  const grid = document.getElementById('editpago-grid');
+  grid.innerHTML = '';
+  PAGOS_SEDE[sede].forEach(pm => {
+    const r = document.createElement('div'); r.className = 'pago-row';
+    r.innerHTML = '<span class="pago-lbl ' + pm.c + '">' + pm.l + '</span>' +
+      '<input type="number" class="pago-inp" id="ep-' + pm.k + '" placeholder="$0" min="0" value="' + (p.pagos[pm.k] || '') + '" oninput="updateEditPagoDiff(' + p.total + ')">';
+    grid.appendChild(r);
+  });
+  updateEditPagoDiff(p.total);
+  // Override guardar to update historial instead of activos
+  document.getElementById('editpago-overlay').dataset.modo = 'historial';
+  document.getElementById('editpago-overlay').classList.remove('hidden');
+}
 function guardarEditPago(){
-  const p=activos[sede].find(x=>x.numero===editPagoId); if(!p) return;
+  const modo = document.getElementById('editpago-overlay').dataset.modo || 'activos';
+  const p = modo === 'historial'
+    ? historial[sede].find(x=>x.numero===editPagoId)
+    : activos[sede].find(x=>x.numero===editPagoId);
+  if(!p) return;
   const pagado=PAGOS_SEDE[sede].reduce((s,pm)=>s+(parseInt(document.getElementById('ep-'+pm.k)?.value)||0),0);
   if(pagado<p.total){ showToast('⚠️ El total pagado no cubre el pedido',true); return; }
   PAGOS_SEDE[sede].forEach(pm=>{ p.pagos[pm.k]=parseInt(document.getElementById('ep-'+pm.k)?.value)||0; });
-  const hist=historial[sede].find(x=>x.numero===editPagoId);
-  if(hist) PAGOS_SEDE[sede].forEach(pm=>{ hist.pagos[pm.k]=p.pagos[pm.k]; });
-  cerrarEditPago(); updateStats(); renderActivos(); guardarEstado(); showToast(`✅ Pago actualizado #${editPagoId}`);
+  if (modo !== 'historial') {
+    const hist=historial[sede].find(x=>x.numero===editPagoId);
+    if(hist) PAGOS_SEDE[sede].forEach(pm=>{ hist.pagos[pm.k]=p.pagos[pm.k]; });
+  }
+  syncSheets({ ...p, tipo:'pedido', entrega:p.tipo });
+  document.getElementById('editpago-overlay').dataset.modo = 'activos';
+  cerrarEditPago(); updateStats(); renderActivos(); guardarEstado();
+  showToast('✅ Pago actualizado #'+editPagoId);
 }
 
 // ═══════════════════════════════════════════════
@@ -2280,10 +2343,16 @@ const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyKtb-JRyGy8YCUmJ-Kz
 function syncSheets(payload) {
   try {
     const url = SHEETS_URL + '?payload=' + encodeURIComponent(JSON.stringify(payload));
-    // fetch con mode no-cors sobre GET — no necesita preflight, siempre pasa
-    fetch(url, { method: 'GET', mode: 'no-cors' })
-      .then(() => console.log('Sheets sync OK:', payload.tipo))
-      .catch(err => console.warn('Sheets sync error:', err));
+    // Intentar con cors primero (devuelve respuesta), si falla usar no-cors
+    fetch(url, { method: 'GET', mode: 'cors' })
+      .then(r => r.json())
+      .then(data => console.log('Sheets sync OK:', payload.tipo, data.ok ? '✅' : '⚠️'))
+      .catch(() => {
+        // Fallback a no-cors si cors falla
+        fetch(url, { method: 'GET', mode: 'no-cors' })
+          .then(() => console.log('Sheets sync OK (no-cors):', payload.tipo))
+          .catch(err => console.warn('Sheets sync error:', err));
+      });
   } catch(err) {
     console.warn('Sheets sync error:', err);
   }
