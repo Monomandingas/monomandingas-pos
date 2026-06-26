@@ -338,6 +338,21 @@ body{font-family:'Inter',sans-serif;background:var(--ng);color:var(--bl);min-hei
 
 .hidden{display:none!important}
 
+/* ── BLOCKED SCREEN ── */
+#blocked-screen {
+  position:fixed;inset:0;background:var(--ng);z-index:9998;
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:0;
+}
+.blocked-logo{font-family:'Bebas Neue',sans-serif;font-size:48px;color:var(--am);letter-spacing:4px;text-align:center}
+.blocked-logo span{color:var(--bl)}
+.blocked-box{background:var(--gp);border:1px solid var(--gb);border-radius:16px;padding:28px 32px;width:340px;text-align:center;margin-top:20px}
+.blocked-icon{font-size:48px;margin-bottom:12px}
+.blocked-title{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--ro);letter-spacing:2px;margin-bottom:8px}
+.blocked-msg{font-size:13px;color:var(--ts);line-height:1.6;margin-bottom:20px}
+.blocked-sede{font-size:11px;font-weight:700;color:var(--am);margin-bottom:16px;background:rgba(245,200,0,.1);padding:6px 12px;border-radius:6px;border:1px solid var(--am)}
+.btn-apertura-blocked{width:100%;padding:14px;background:var(--ve);border:none;color:var(--bl);border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;cursor:pointer;transition:all .2s}
+.btn-apertura-blocked:hover{background:#2E7D32}
+
 /* ── PIN SCREEN ── */
 #pin-screen {
   position:fixed;inset:0;background:var(--ng);z-index:9999;
@@ -415,6 +430,18 @@ body{font-family:'Inter',sans-serif;background:var(--ng);color:var(--bl);min-hei
 
 <!-- Iframe oculto para sync Google Sheets sin recargar página -->
 <iframe name="sheets-iframe" style="display:none" width="0" height="0"></iframe>
+
+<!-- BLOCKED SCREEN — sin apertura activa -->
+<div id="blocked-screen">
+  <div class="blocked-logo">MONO<span>MANDINGAS</span></div>
+  <div class="blocked-box">
+    <div class="blocked-icon">🔒</div>
+    <div class="blocked-title">CAJA CERRADA</div>
+    <div class="blocked-sede" id="blocked-sede-label">Sede La 99</div>
+    <div class="blocked-msg">El turno anterior fue cerrado.<br>Registra la apertura de caja para comenzar a tomar pedidos.</div>
+    <button class="btn-apertura-blocked" onclick="abrirAperturaDesdeBloqueo()">🔓 REGISTRAR APERTURA</button>
+  </div>
+</div>
 
 <!-- PIN SCREEN -->
 <div id="pin-screen">
@@ -716,7 +743,24 @@ body{font-family:'Inter',sans-serif;background:var(--ng);color:var(--bl);min-hei
     <div id="cierre-body"></div>
     <div class="m-btns" style="margin-top:14px">
       <button class="btn-sec" onclick="cerrarCierre()">Cerrar</button>
-      <button class="btn-pri" onclick="exportarCSV()">⬇️ EXPORTAR CSV</button>
+      <button class="btn-pri" onclick="exportarCSV()">⬇️ CSV</button>
+      <button id="btn-cerrar-turno" style="flex:2;padding:9px;background:var(--ro);border:none;color:var(--bl);border-radius:6px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;cursor:pointer" onclick="confirmarCierreTurno()">🔒 CERRAR TURNO</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal confirmar cierre turno -->
+<div class="overlay hidden" id="cierre-turno-overlay">
+  <div class="modal" style="max-width:380px">
+    <div class="m-title" style="color:var(--ro)">🔒 CERRAR TURNO</div>
+    <div class="m-sub" id="cierre-turno-sub">Esta acción cerrará el turno de La 99</div>
+    <div style="background:var(--ng);border:1px solid var(--gb);border-radius:8px;padding:14px;margin:12px 0;font-size:12px;line-height:1.8" id="cierre-turno-resumen"></div>
+    <div style="font-size:11px;color:var(--ro);font-weight:700;text-align:center;padding:8px;background:rgba(229,57,53,.08);border-radius:6px;margin-bottom:4px">
+      ⚠️ No podrás tomar pedidos hasta hacer una nueva apertura
+    </div>
+    <div class="m-btns">
+      <button class="btn-sec" onclick="document.getElementById('cierre-turno-overlay').classList.add('hidden')">Cancelar</button>
+      <button class="btn-danger" onclick="ejecutarCierreTurno()">CONFIRMAR CIERRE</button>
     </div>
   </div>
 </div>
@@ -884,6 +928,80 @@ let apertura={'99':{abierta:false,base:0,hora:''},'43':{abierta:false,base:0,hor
 let gastos={'99':[],'43':[]};
 
 // ═══════════════════════════════════════════════
+//  PERSISTENCIA — localStorage
+// ═══════════════════════════════════════════════
+const LS_KEY = 'monomandingas_pos_v1';
+
+function guardarEstado() {
+  const estado = {
+    sede,
+    pedidoCounter,
+    historial,
+    activos,
+    apertura,
+    gastos,
+    comprasHistorial,
+    stock,
+    ajustesLog,
+    savedAt: new Date().toISOString()
+  };
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(estado));
+  } catch(e) {
+    console.warn('localStorage error:', e);
+  }
+}
+
+function cargarEstado() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return false;
+    const estado = JSON.parse(raw);
+    // Restaurar todo
+    pedidoCounter  = estado.pedidoCounter  || 1;
+    historial      = estado.historial      || {'99':[],'43':[]};
+    activos        = estado.activos        || {'99':[],'43':[]};
+    apertura       = estado.apertura       || {'99':{abierta:false,base:0,hora:''},'43':{abierta:false,base:0,hora:''}};
+    gastos         = estado.gastos         || {'99':[],'43':[]};
+    comprasHistorial = estado.comprasHistorial || {'99':[],'43':[]};
+    ajustesLog     = estado.ajustesLog     || {'99':[],'43':[]};
+    // Restaurar stock — merge con defaults para nuevos insumos
+    if (estado.stock) {
+      Object.keys(estado.stock).forEach(s => {
+        Object.keys(estado.stock[s]).forEach(id => {
+          if (stock[s] !== undefined) stock[s][id] = estado.stock[s][id];
+        });
+      });
+    }
+    console.log('Estado restaurado desde localStorage:', estado.savedAt);
+    return true;
+  } catch(e) {
+    console.warn('Error cargando estado:', e);
+    return false;
+  }
+}
+
+function limpiarEstadoLocal() {
+  try { localStorage.removeItem(LS_KEY); } catch(e) {}
+}
+
+function verificarBloqueo(sedeActual) {
+  const ap = apertura[sedeActual];
+  if (!ap.abierta) {
+    // Mostrar pantalla bloqueada
+    document.getElementById('blocked-screen').style.display = 'flex';
+    document.getElementById('blocked-sede-label').textContent = `Sede La ${sedeActual}`;
+  } else {
+    document.getElementById('blocked-screen').style.display = 'none';
+  }
+}
+
+function abrirAperturaDesdeBloqueo() {
+  document.getElementById('blocked-screen').style.display = 'none';
+  abrirApertura();
+}
+
+// ═══════════════════════════════════════════════
 //  VIEWS
 // ═══════════════════════════════════════════════
 function setView(v) {
@@ -906,6 +1024,21 @@ function setSede(s) {
   document.getElementById('stat-sede').textContent=`Sede La ${s} · Hoy`;
   document.getElementById('sp-bc').classList.toggle('hidden',s!=='99');
   renderPagoGrid(); limpiarPedido(); updateStats(); renderActivos();
+  verificarBloqueo(s);
+  // Actualizar botón apertura según estado
+  const ap=apertura[s];
+  const btn=document.getElementById('btn-apertura');
+  if(ap.abierta){
+    btn.textContent=`✅ La ${s}: ${fmt(ap.base)}`;
+    btn.style.background='rgba(67,160,71,.15)';
+    btn.style.borderColor='var(--ve)';
+    btn.style.color='var(--ve)';
+  } else {
+    btn.textContent='🔓 Apertura';
+    btn.style.background='';
+    btn.style.borderColor='';
+    btn.style.color='';
+  }
 }
 
 function setTipo(t) {
@@ -1124,6 +1257,7 @@ function confirmarPedido(){
   }
 
   showToast(`🎉 Pedido #${pedido.numero} · ${fmt(t)}`);
+  guardarEstado();
 }
 
 // ═══════════════════════════════════════════════
@@ -1183,7 +1317,7 @@ function renderActivos(){
 function marcarEntregado(num){
   const p=activos[sede].find(x=>x.numero===num); if(!p) return;
   p.estado='entregado'; activos[sede]=activos[sede].filter(x=>x.numero!==num);
-  updateStats(); renderActivos(); showToast(`✅ Pedido #${num} entregado`);
+  updateStats(); renderActivos(); guardarEstado(); showToast(`✅ Pedido #${num} entregado`);
 }
 
 // ═══════════════════════════════════════════════
@@ -1218,7 +1352,7 @@ function guardarEditPago(){
   PAGOS_SEDE[sede].forEach(pm=>{ p.pagos[pm.k]=parseInt(document.getElementById('ep-'+pm.k)?.value)||0; });
   const hist=historial[sede].find(x=>x.numero===editPagoId);
   if(hist) PAGOS_SEDE[sede].forEach(pm=>{ hist.pagos[pm.k]=p.pagos[pm.k]; });
-  cerrarEditPago(); updateStats(); renderActivos(); showToast(`✅ Pago actualizado #${editPagoId}`);
+  cerrarEditPago(); updateStats(); renderActivos(); guardarEstado(); showToast(`✅ Pago actualizado #${editPagoId}`);
 }
 
 // ═══════════════════════════════════════════════
@@ -1240,7 +1374,7 @@ function confirmarAnulacion(){
   // Sync anulación a Google Sheets
   syncSheets({ ...pedido, tipo:'pedido', entrega:pedido.tipo });
 
-  cerrarAnularModal(); updateStats(); renderActivos();
+  cerrarAnularModal(); updateStats(); renderActivos(); guardarEstado();
   showToast(`🚫 Pedido #${anularPedidoId} anulado`,true);
 }
 function abrirAnulados(){
@@ -1505,7 +1639,6 @@ function showToast(msg,warn=false){
 // ═══════════════════════════════════════════════
 function abrirApertura(){
   const ap=apertura[sede];
-  const btn=document.getElementById('btn-apertura');
   if(ap.abierta){
     showToast(`✅ Caja La ${sede} ya abierta con base ${fmt(ap.base)}`,false);
     return;
@@ -1513,6 +1646,91 @@ function abrirApertura(){
   document.getElementById('apertura-sub').textContent=`Sede La ${sede} · Registra el dinero inicial`;
   document.getElementById('apertura-base').value='';
   document.getElementById('apertura-overlay').classList.remove('hidden');
+}
+
+function confirmarCierreTurno(){
+  // Mostrar resumen antes de confirmar
+  const ped=historial[sede].filter(p=>p.estado!=='anulado');
+  const anus=historial[sede].filter(p=>p.estado==='anulado');
+  const total=ped.reduce((s,p)=>s+p.total,0);
+  const ef=ped.reduce((s,p)=>s+(p.pagos.ef||0),0);
+  const vueltas=ped.reduce((s,p)=>s+(p.vueltaDada||0),0);
+  const nq=ped.reduce((s,p)=>s+(p.pagos.nq||0),0);
+  const bc=ped.reduce((s,p)=>s+(p.pagos.bc||0),0);
+  const totalGastos=(gastos[sede]||[]).reduce((s,g)=>s+g.valor,0);
+  const ap=apertura[sede];
+
+  document.getElementById('cierre-turno-sub').textContent=`Cierre de turno · La ${sede}`;
+  document.getElementById('cierre-turno-resumen').innerHTML=`
+    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--gb)">
+      <span style="color:var(--ts)">Apertura (base)</span><span style="font-weight:700">${fmt(ap.base)}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--gb)">
+      <span style="color:var(--ts)">Total vendido</span><span style="font-weight:700;color:var(--am)">${fmt(total)}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--gb)">
+      <span style="color:var(--ts)">Pedidos confirmados</span><span style="font-weight:700">${ped.length}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--gb)">
+      <span style="color:var(--ts)">Pedidos anulados</span><span style="font-weight:700;color:var(--ro)">${anus.length}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--gb)">
+      <span style="color:var(--ts)">💵 Efectivo real</span><span style="font-weight:700;color:var(--ve)">${fmt(ef-vueltas)}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--gb)">
+      <span style="color:var(--ts)">💜 Nequi</span><span style="font-weight:700;color:var(--mo)">${fmt(nq)}</span>
+    </div>
+    ${sede==='99'?`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--gb)">
+      <span style="color:var(--ts)">🏦 Bancolombia</span><span style="font-weight:700;color:var(--am)">${fmt(bc)}</span>
+    </div>`:''}
+    <div style="display:flex;justify-content:space-between;padding:4px 0">
+      <span style="color:var(--ts)">💸 Gastos</span><span style="font-weight:700;color:var(--ro)">- ${fmt(totalGastos)}</span>
+    </div>`;
+  document.getElementById('cierre-turno-overlay').classList.remove('hidden');
+}
+
+function ejecutarCierreTurno(){
+  // Marcar apertura como cerrada
+  apertura[sede].abierta = false;
+  apertura[sede].horaCierre = now();
+
+  // Guardar historial de cierres (para consulta posterior)
+  const cierreKey = 'monomandingas_cierre_' + sede + '_' + Date.now();
+  const resumen = {
+    sede, fecha: hoy(), horaCierre: now(),
+    horaApertura: apertura[sede].hora,
+    base: apertura[sede].base,
+    historial: historial[sede],
+    gastos: gastos[sede],
+    compras: comprasHistorial[sede]
+  };
+  try { localStorage.setItem(cierreKey, JSON.stringify(resumen)); } catch(e){}
+
+  // Limpiar datos del turno
+  historial[sede] = [];
+  activos[sede] = [];
+  gastos[sede] = [];
+  pedidoCounter = 1;
+  apertura[sede] = {abierta:false, base:0, hora:''};
+
+  // Actualizar UI
+  guardarEstado();
+  document.getElementById('cierre-turno-overlay').classList.add('hidden');
+  cerrarCierre();
+  updateStats();
+  renderActivos();
+  limpiarPedido();
+
+  // Actualizar botón apertura
+  const btn = document.getElementById('btn-apertura');
+  btn.textContent = '🔓 Apertura';
+  btn.style.background = '';
+  btn.style.borderColor = '';
+  btn.style.color = '';
+
+  // Mostrar pantalla bloqueada
+  verificarBloqueo(sede);
+  showToast(`🔒 Turno La ${sede} cerrado. Registra apertura para continuar.`, true);
 }
 function cerrarApertura(){ document.getElementById('apertura-overlay').classList.add('hidden'); }
 function confirmarApertura(){
@@ -1526,7 +1744,9 @@ function confirmarApertura(){
   // Sync a Google Sheets
   syncSheets({ tipo:'apertura', fecha:hoy(), hora:now(), sede, base });
 
+  verificarBloqueo(sede);
   cerrarApertura();
+  guardarEstado();
   showToast(`🔓 Caja La ${sede} abierta · Base: ${fmt(base)}`);
 }
 
@@ -1554,6 +1774,7 @@ function agregarGasto(){
   syncSheets({ tipo:'gasto', fecha:hoy(), hora:now(), sede, categoria:cat, desc, valor });
 
   renderGastosList();
+  guardarEstado();
   showToast(`💸 Gasto registrado: ${fmt(valor)}`);
 }
 function eliminarGasto(id){
@@ -1858,6 +2079,7 @@ function registrarCompra() {
   document.getElementById('compra-nota').value = '';
 
   renderCompras(comprasSede);
+  guardarEstado();
   showToast(`✅ Compra registrada · +${cantidad} ${insumoNombre.split(' (')[0]}`);
 }
 
@@ -1966,7 +2188,30 @@ document.addEventListener('keydown', function(e) {
 });
 
 // INIT
-window.onload=()=>{ renderMenu(); renderPagoGrid(); updateStats(); };
+window.onload=()=>{
+  // Cargar estado guardado
+  cargarEstado();
+  renderMenu();
+  renderPagoGrid();
+  updateStats();
+  renderActivos();
+
+  // Verificar si hay apertura activa para la sede actual
+  verificarBloqueo(sede);
+
+  // Si hay apertura activa, actualizar botón
+  const ap = apertura[sede];
+  if (ap.abierta) {
+    const btn = document.getElementById('btn-apertura');
+    btn.textContent = `✅ La ${sede}: ${fmt(ap.base)}`;
+    btn.style.background = 'rgba(67,160,71,.15)';
+    btn.style.borderColor = 'var(--ve)';
+    btn.style.color = 'var(--ve)';
+  }
+
+  // Si hay pedidos activos, re-renderizar inventario y compras
+  if (typeof renderCompras === 'function') renderCompras(comprasSede);
+};
 </script>
 </body>
 </html>
