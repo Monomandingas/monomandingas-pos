@@ -1371,8 +1371,8 @@ function confirmarAnulacion(){
   const p=activos[sede].find(x=>x.numero===anularPedidoId); if(!p){ cerrarAnularModal(); return; }
   p.estado='anulado'; p.motivoAnulacion=motivo; p.horaAnulacion=now();
   activos[sede]=activos[sede].filter(x=>x.numero!==anularPedidoId);
-  // Sync anulación a Google Sheets
-  syncSheets({ ...pedido, tipo:'pedido', entrega:pedido.tipo });
+  // Sync anulación a Google Sheets — usar p (pedido encontrado), no pedido (fuera de scope)
+  syncSheets({ ...p, tipo:'pedido', entrega:p.tipo });
 
   cerrarAnularModal(); updateStats(); renderActivos(); guardarEstado();
   showToast(`🚫 Pedido #${anularPedidoId} anulado`,true);
@@ -1694,24 +1694,14 @@ function confirmarCierreTurno(){
 }
 
 function ejecutarCierreTurno(){
-  // Marcar apertura como cerrada
-  apertura[sede].abierta = false;
-  apertura[sede].horaCierre = now();
+  // Capturar datos ANTES de modificar estado
+  const horaApertura = apertura[sede].hora;
+  const baseInicial  = apertura[sede].base;
+  const horaCierre   = now();
+  const fechaCierre  = hoy();
 
-  // Guardar historial de cierres (para consulta posterior)
-  const cierreKey = 'monomandingas_cierre_' + sede + '_' + Date.now();
-  const resumen = {
-    sede, fecha: hoy(), horaCierre: now(),
-    horaApertura: apertura[sede].hora,
-    base: apertura[sede].base,
-    historial: historial[sede],
-    gastos: gastos[sede],
-    compras: comprasHistorial[sede]
-  };
-  try { localStorage.setItem(cierreKey, JSON.stringify(resumen)); } catch(e){}
-
-  // Calcular totales para sync
-  const pedCierre = historial[sede].filter(p=>p.estado!=='anulado');
+  // Calcular totales
+  const pedCierre  = historial[sede].filter(p=>p.estado!=='anulado');
   const totalVentas = pedCierre.reduce((s,p)=>s+p.total,0);
   const efCobrado  = pedCierre.reduce((s,p)=>s+(p.pagos.ef||0),0);
   const vueltas    = pedCierre.reduce((s,p)=>s+(p.vueltaDada||0),0);
@@ -1719,16 +1709,16 @@ function ejecutarCierreTurno(){
   const nqTotal    = pedCierre.reduce((s,p)=>s+(p.pagos.nq||0),0);
   const bcTotal    = pedCierre.reduce((s,p)=>s+(p.pagos.bc||0),0);
   const totalGast  = (gastos[sede]||[]).reduce((s,g)=>s+g.valor,0);
-  const apActual   = apertura[sede];
+  const totalEnCaja = baseInicial + efReal - totalGast;
 
-  // Sync cierre a Google Sheets
+  // Sync cierre a Google Sheets ANTES de limpiar
   syncSheets({
     tipo: 'cierre',
-    fecha: hoy(),
-    horaApertura: apActual.hora,
-    horaCierre: now(),
+    fecha: fechaCierre,
+    horaApertura,
+    horaCierre,
     sede,
-    base: apActual.base,
+    base: baseInicial,
     totalVentas,
     totalPedidos: pedCierre.length,
     pedidosAnulados: historial[sede].filter(p=>p.estado==='anulado').length,
@@ -1736,8 +1726,18 @@ function ejecutarCierreTurno(){
     nequi: nqTotal,
     bancolombia: bcTotal,
     totalGastos: totalGast,
-    totalEnCaja: apActual.base + efReal - totalGast,
+    totalEnCaja: totalEnCaja,
   });
+
+  // Guardar resumen histórico en localStorage
+  try {
+    const cierreKey = 'mpos_cierre_' + sede + '_' + Date.now();
+    localStorage.setItem(cierreKey, JSON.stringify({
+      sede, fecha: fechaCierre, horaCierre, horaApertura,
+      base: baseInicial, totalVentas, totalEnCaja,
+      pedidos: pedCierre.length
+    }));
+  } catch(e){}
 
   // Limpiar datos del turno
   historial[sede] = [];
