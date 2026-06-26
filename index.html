@@ -1683,8 +1683,12 @@ function confirmarCierreTurno(){
     ${sede==='99'?`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--gb)">
       <span style="color:var(--ts)">🏦 Bancolombia</span><span style="font-weight:700;color:var(--am)">${fmt(bc)}</span>
     </div>`:''}
-    <div style="display:flex;justify-content:space-between;padding:4px 0">
+    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--gb)">
       <span style="color:var(--ts)">💸 Gastos</span><span style="font-weight:700;color:var(--ro)">- ${fmt(totalGastos)}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:8px 0;margin-top:4px;background:rgba(245,200,0,.08);border-radius:6px;padding:8px 10px;border:1px solid var(--am)">
+      <span style="font-weight:700;color:var(--bl)">💵 DEBE HABER EN CAJA</span>
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--am)">${fmt(ap.base + (ef-vueltas) - totalGastos)}</span>
     </div>`;
   document.getElementById('cierre-turno-overlay').classList.remove('hidden');
 }
