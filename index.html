@@ -333,6 +333,58 @@ body{font-family:'Inter',sans-serif;background:var(--ng);color:var(--bl);min-hei
 .no-compras{text-align:center;color:var(--ts);font-size:12px;padding:30px 0}
 
 /* TOAST */
+/* ── COMPARATIVO ── */
+.comp-view{flex-direction:column;overflow-y:auto;padding:18px;background:var(--go)}
+.comp-view::-webkit-scrollbar{width:5px}
+.comp-view::-webkit-scrollbar-thumb{background:var(--gb);border-radius:2px}
+.comp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.comp-title{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--am);letter-spacing:2px}
+.comp-sync-btn{padding:7px 16px;background:var(--az);border:none;color:var(--bl);border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s}
+.comp-sync-btn:hover{background:#1565C0}
+.comp-sync-btn.loading{opacity:.6;cursor:not-allowed}
+
+.comp-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+.comp-sede-card{background:var(--gp);border:1px solid var(--gb);border-radius:12px;overflow:hidden}
+.comp-sede-header{padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+.comp-sede-99{background:linear-gradient(135deg,rgba(245,200,0,.15),rgba(245,200,0,.05));border-bottom:2px solid var(--am)}
+.comp-sede-43{background:linear-gradient(135deg,rgba(0,188,212,.15),rgba(0,188,212,.05));border-bottom:2px solid var(--ci)}
+.comp-sede-name{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px}
+.comp-sede-name-99{color:var(--am)}
+.comp-sede-name-43{color:var(--ci)}
+.comp-sede-status{font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px}
+.status-abierta{background:rgba(67,160,71,.15);color:var(--ve);border:1px solid var(--ve)}
+.status-cerrada{background:rgba(229,57,53,.15);color:var(--ro);border:1px solid var(--ro)}
+.comp-sede-body{padding:14px 16px}
+.comp-kpi-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--gb);font-size:12px}
+.comp-kpi-row:last-child{border-bottom:none}
+.comp-kpi-label{color:var(--ts)}
+.comp-kpi-val{font-weight:700}
+.comp-kpi-val.am{color:var(--am)}.comp-kpi-val.ve{color:var(--ve)}.comp-kpi-val.mo{color:var(--mo)}.comp-kpi-val.az{color:var(--az)}.comp-kpi-val.ro{color:var(--ro)}
+
+.comp-versus{background:var(--gp);border:1px solid var(--gb);border-radius:12px;padding:16px;margin-bottom:16px}
+.comp-versus-title{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--am);letter-spacing:1px;margin-bottom:12px}
+.comp-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.comp-bar-label{font-size:11px;font-weight:700;color:var(--ts);min-width:140px}
+.comp-bar-wrap{flex:1;display:flex;flex-direction:column;gap:4px}
+.comp-bar-track{height:16px;background:var(--ng);border-radius:8px;overflow:hidden;display:flex}
+.comp-bar-99{height:100%;background:linear-gradient(90deg,rgba(245,200,0,.8),rgba(245,200,0,.4));border-radius:8px 0 0 8px;transition:width .5s ease;display:flex;align-items:center;padding-left:6px}
+.comp-bar-43{height:100%;background:linear-gradient(90deg,rgba(0,188,212,.8),rgba(0,188,212,.4));border-radius:0 8px 8px 0;transition:width .5s ease}
+.comp-bar-vals{display:flex;justify-content:space-between;font-size:10px;font-weight:700}
+.comp-bar-val-99{color:var(--am)}.comp-bar-val-43{color:var(--ci)}
+
+.comp-ganador{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;margin-left:6px}
+.ganador-99{background:rgba(245,200,0,.15);color:var(--am);border:1px solid var(--am)}
+.ganador-43{background:rgba(0,188,212,.15);color:var(--ci);border:1px solid var(--ci)}
+.ganador-empate{background:rgba(170,170,170,.15);color:var(--ts);border:1px solid var(--ts)}
+
+.comp-historial{background:var(--gp);border:1px solid var(--gb);border-radius:12px;padding:16px}
+.comp-hist-title{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--am);letter-spacing:1px;margin-bottom:12px}
+.comp-hist-table{width:100%;border-collapse:collapse}
+.comp-hist-table th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ts);padding:6px 8px;border-bottom:1px solid var(--gb);text-align:left;background:var(--ng)}
+.comp-hist-table td{font-size:11px;padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.04)}
+.comp-hist-table tr:hover td{background:rgba(255,255,255,.02)}
+.comp-no-data{text-align:center;color:var(--ts);font-size:12px;padding:24px 0}
+
 .toast{position:fixed;bottom:18px;right:18px;background:var(--gp);border:1px solid var(--ve);color:var(--bl);border-radius:8px;padding:10px 14px;font-size:12px;font-weight:600;z-index:3000;transform:translateX(150%);transition:transform .3s ease;max-width:260px}
 .toast.show{transform:translateX(0)}
 
@@ -498,6 +550,7 @@ body{font-family:'Inter',sans-serif;background:var(--ng);color:var(--bl);min-hei
 <div class="nav-tabs">
   <div class="nav-tab active" onclick="setView('pos')" id="ntab-pos">🍟 Punto de Venta</div>
   <div class="nav-tab" onclick="setView('reports')" id="ntab-reports">📈 Reportes</div>
+  <div class="nav-tab hidden" onclick="setView('comparativo')" id="ntab-comparativo">⚡ Comparativo</div>
   <div class="nav-tab" onclick="setView('inventario')" id="ntab-inventario">📦 Inventario</div>
   <div class="nav-tab" onclick="setView('compras')" id="ntab-compras">🛒 Compras</div>
 </div>
@@ -676,6 +729,36 @@ body{font-family:'Inter',sans-serif;background:var(--ng);color:var(--bl);min-hei
     <div class="m-btns">
       <button class="btn-sec" onclick="cerrarAjuste()">Cancelar</button>
       <button class="btn-az" onclick="confirmarAjuste()">GUARDAR AJUSTE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ VIEW: COMPARATIVO (SOLO ADMIN) ═══ -->
+<div class="view comp-view" id="view-comparativo">
+  <div class="comp-header">
+    <div class="comp-title">⚡ COMPARATIVO DE SEDES</div>
+    <button class="comp-sync-btn" onclick="cargarComparativoSheets()" id="btn-comp-sync">
+      🔄 Actualizar desde Sheets
+    </button>
+  </div>
+
+  <!-- Turno actual -->
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--ts);letter-spacing:1px;margin-bottom:10px">
+    TURNO ACTUAL — EN TIEMPO REAL
+  </div>
+  <div class="comp-grid" id="comp-turno-actual"></div>
+
+  <!-- Barras comparativas -->
+  <div class="comp-versus" id="comp-versus">
+    <div class="comp-versus-title">📊 COMPARATIVO VISUAL</div>
+    <div id="comp-barras"></div>
+  </div>
+
+  <!-- Historial de cierres desde Sheets -->
+  <div class="comp-historial">
+    <div class="comp-hist-title">📋 HISTORIAL DE CIERRES</div>
+    <div id="comp-historial-body">
+      <div class="comp-no-data">Clic en "Actualizar desde Sheets" para cargar el historial</div>
     </div>
   </div>
 </div>
@@ -1005,13 +1088,15 @@ function abrirAperturaDesdeBloqueo() {
 //  VIEWS
 // ═══════════════════════════════════════════════
 function setView(v) {
-  ['pos','reports','inventario','compras'].forEach(id=>{
+  ['pos','reports','inventario','compras','comparativo'].forEach(id=>{
     document.getElementById('view-'+id).classList.toggle('active', v===id);
-    document.getElementById('ntab-'+id).classList.toggle('active', v===id);
+    const ntab = document.getElementById('ntab-'+id);
+    if(ntab) ntab.classList.toggle('active', v===id);
   });
-  if(v==='reports')    renderReports(rptSede);
-  if(v==='inventario') renderInventario(invSede);
-  if(v==='compras')    renderCompras(comprasSede);
+  if(v==='reports')     renderReports(rptSede);
+  if(v==='inventario')  renderInventario(invSede);
+  if(v==='compras')     renderCompras(comprasSede);
+  if(v==='comparativo') renderComparativoLocal();
 }
 
 // ═══════════════════════════════════════════════
@@ -2190,11 +2275,28 @@ function pinEnter() {
     const sedeAcceso = isAdmin ? '99' : pinSede;
     document.getElementById('pin-screen').style.display = 'none';
     setSede(sedeAcceso);
-    // Admin ve todas las pestañas; empleado solo ve POS
+
     if (!isAdmin) {
+      // Empleado: ocultar selector de sede, reportes y comparativo
       document.getElementById('ntab-reports').style.display = 'none';
+      document.getElementById('ntab-comparativo').style.display = 'none';
+      // Ocultar botones de sede — solo ven su sede
+      document.getElementById('bs99').style.display = 'none';
+      document.getElementById('bs43').style.display = 'none';
+      // Mostrar label con la sede asignada
+      const sedelabel = document.createElement('span');
+      sedelabel.id = 'sede-fija-label';
+      sedelabel.style.cssText = 'font-family:Bebas Neue,sans-serif;font-size:14px;color:var(--am);letter-spacing:1px;padding:4px 12px;background:rgba(245,200,0,.1);border:1px solid var(--am);border-radius:6px';
+      sedelabel.textContent = '🏪 LA ' + sedeAcceso;
+      const center = document.querySelector('.hdr-center');
+      center.innerHTML = '';
+      center.appendChild(sedelabel);
     } else {
+      // Admin: mostrar todo
       document.getElementById('ntab-reports').style.display = '';
+      document.getElementById('ntab-comparativo').style.display = '';
+      document.getElementById('bs99').style.display = '';
+      document.getElementById('bs43').style.display = '';
     }
   } else {
     // PIN incorrecto
@@ -2221,6 +2323,174 @@ document.addEventListener('keydown', function(e) {
 });
 
 // INIT
+// ═══════════════════════════════════════════════
+//  COMPARATIVO DE SEDES
+// ═══════════════════════════════════════════════
+
+function renderComparativoLocal() {
+  // Datos turno actual de ambas sedes (localStorage local)
+  const sedes = ['99','43'];
+  const datos = {};
+
+  sedes.forEach(s => {
+    const ped = historial[s].filter(p=>p.estado!=='anulado');
+    const anus = historial[s].filter(p=>p.estado==='anulado');
+    const total = ped.reduce((a,p)=>a+p.total,0);
+    const ef = ped.reduce((a,p)=>a+(p.pagos.ef||0),0);
+    const vueltas = ped.reduce((a,p)=>a+(p.vueltaDada||0),0);
+    const nq = ped.reduce((a,p)=>a+(p.pagos.nq||0),0);
+    const bc = ped.reduce((a,p)=>a+(p.pagos.bc||0),0);
+    const doms = ped.filter(p=>p.tipo==='domicilio').length;
+    const gastosSede = (gastos[s]||[]).reduce((a,g)=>a+g.valor,0);
+    const ap = apertura[s];
+    datos[s] = {
+      total, pedidos: ped.length, anulados: anus.length,
+      ef: ef-vueltas, nq, bc, doms,
+      gastos: gastosSede, abierta: ap.abierta,
+      base: ap.base, hora: ap.hora,
+      ticket: ped.length ? Math.round(total/ped.length) : 0
+    };
+  });
+
+  // Render tarjetas por sede
+  const turnoEl = document.getElementById('comp-turno-actual');
+  turnoEl.innerHTML = ['99','43'].map(s => {
+    const d = datos[s];
+    const color = s==='99' ? 'comp-sede-99' : 'comp-sede-43';
+    const nameColor = s==='99' ? 'comp-sede-name-99' : 'comp-sede-name-43';
+    const statusCls = d.abierta ? 'status-abierta' : 'status-cerrada';
+    const statusTxt = d.abierta ? `🟢 Abierta ${d.hora}` : '🔴 Cerrada';
+    return `
+      <div class="comp-sede-card">
+        <div class="comp-sede-header ${color}">
+          <span class="comp-sede-name ${nameColor}">LA ${s}</span>
+          <span class="comp-sede-status ${statusCls}">${statusTxt}</span>
+        </div>
+        <div class="comp-sede-body">
+          <div class="comp-kpi-row"><span class="comp-kpi-label">💰 Total vendido</span><span class="comp-kpi-val am">${fmt(d.total)}</span></div>
+          <div class="comp-kpi-row"><span class="comp-kpi-label">📦 Pedidos</span><span class="comp-kpi-val">${d.pedidos}</span></div>
+          <div class="comp-kpi-row"><span class="comp-kpi-label">🎯 Ticket promedio</span><span class="comp-kpi-val">${fmt(d.ticket)}</span></div>
+          <div class="comp-kpi-row"><span class="comp-kpi-label">🛵 Domicilios</span><span class="comp-kpi-val az">${d.doms}</span></div>
+          <div class="comp-kpi-row"><span class="comp-kpi-label">💵 Efectivo real</span><span class="comp-kpi-val ve">${fmt(d.ef)}</span></div>
+          <div class="comp-kpi-row"><span class="comp-kpi-label">💜 Nequi</span><span class="comp-kpi-val mo">${fmt(d.nq)}</span></div>
+          ${s==='99'?`<div class="comp-kpi-row"><span class="comp-kpi-label">🏦 Bancolombia</span><span class="comp-kpi-val am">${fmt(d.bc)}</span></div>`:''}
+          <div class="comp-kpi-row"><span class="comp-kpi-label">💸 Gastos</span><span class="comp-kpi-val ro">${fmt(d.gastos)}</span></div>
+          <div class="comp-kpi-row"><span class="comp-kpi-label">🚫 Anulados</span><span class="comp-kpi-val ro">${d.anulados}</span></div>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Barras comparativas
+  const metricas = [
+    {label:'Total vendido', k:'total', fmt:true},
+    {label:'Pedidos', k:'pedidos', fmt:false},
+    {label:'Ticket promedio', k:'ticket', fmt:true},
+    {label:'Domicilios', k:'doms', fmt:false},
+    {label:'Efectivo real', k:'ef', fmt:true},
+  ];
+
+  const barrasEl = document.getElementById('comp-barras');
+  barrasEl.innerHTML = metricas.map(m => {
+    const v99 = datos['99'][m.k] || 0;
+    const v43 = datos['43'][m.k] || 0;
+    const total = v99 + v43 || 1;
+    const pct99 = Math.round((v99/total)*100);
+    const pct43 = 100 - pct99;
+    const ganador = v99 > v43 ? '<span class="comp-ganador ganador-99">LA 99</span>' :
+                    v43 > v99 ? '<span class="comp-ganador ganador-43">LA 43</span>' :
+                    '<span class="comp-ganador ganador-empate">EMPATE</span>';
+    return `
+      <div class="comp-bar-row">
+        <div class="comp-bar-label">${m.label}${ganador}</div>
+        <div class="comp-bar-wrap">
+          <div class="comp-bar-track">
+            <div class="comp-bar-99" style="width:${pct99}%"></div>
+            <div class="comp-bar-43" style="width:${pct43}%"></div>
+          </div>
+          <div class="comp-bar-vals">
+            <span class="comp-bar-val-99">LA 99: ${m.fmt?fmt(v99):v99}</span>
+            <span class="comp-bar-val-43">LA 43: ${m.fmt?fmt(v43):v43}</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// Cargar historial de cierres desde Google Sheets
+async function cargarComparativoSheets() {
+  const btn = document.getElementById('btn-comp-sync');
+  btn.textContent = '⏳ Cargando...';
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  try {
+    const url = SHEETS_URL + '?payload=' + encodeURIComponent(JSON.stringify({tipo:'getCierres'}));
+    const resp = await fetch(url, {mode:'cors'});
+    const data = await resp.json();
+
+    if (data.ok && data.cierres) {
+      renderHistorialCierres(data.cierres);
+    } else {
+      document.getElementById('comp-historial-body').innerHTML =
+        '<div class="comp-no-data">No se pudo cargar el historial. Verifica la conexión.</div>';
+    }
+  } catch(e) {
+    // Si CORS falla, mostrar mensaje orientativo
+    document.getElementById('comp-historial-body').innerHTML =
+      '<div class="comp-no-data" style="line-height:1.8">No se puede leer Sheets directamente desde el navegador.<br>' +
+      '<span style="color:var(--am);font-weight:700">Consulta el historial completo en Google Sheets → pestaña "Cierres"</span></div>';
+  } finally {
+    btn.textContent = '🔄 Actualizar desde Sheets';
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+}
+
+function renderHistorialCierres(cierres) {
+  const el = document.getElementById('comp-historial-body');
+  if (!cierres.length) {
+    el.innerHTML = '<div class="comp-no-data">Sin cierres registrados aún.</div>';
+    return;
+  }
+  // Agrupar por fecha para mostrar comparativo histórico
+  const porFecha = {};
+  cierres.forEach(c => {
+    if (!porFecha[c.fecha]) porFecha[c.fecha] = {};
+    porFecha[c.fecha][c.sede] = c;
+  });
+
+  el.innerHTML = `
+    <table class="comp-hist-table">
+      <thead><tr>
+        <th>Fecha</th>
+        <th style="color:var(--am)">LA 99 — Total</th>
+        <th style="color:var(--am)">LA 99 — Caja</th>
+        <th style="color:var(--ci)">LA 43 — Total</th>
+        <th style="color:var(--ci)">LA 43 — Caja</th>
+        <th>Ganador</th>
+      </tr></thead>
+      <tbody>
+        ${Object.entries(porFecha).reverse().slice(0,30).map(([fecha, sedes]) => {
+          const s99 = sedes['99'] || {};
+          const s43 = sedes['43'] || {};
+          const t99 = s99.totalVentas || 0;
+          const t43 = s43.totalVentas || 0;
+          const ganador = t99 > t43 ? '<span class="comp-ganador ganador-99">LA 99</span>' :
+                          t43 > t99 ? '<span class="comp-ganador ganador-43">LA 43</span>' :
+                          '<span class="comp-ganador ganador-empate">—</span>';
+          return `<tr>
+            <td style="font-weight:700">${fecha}</td>
+            <td style="color:var(--am);font-weight:700">${t99?fmt(t99):'—'}</td>
+            <td style="color:var(--ve)">${s99.totalEnCaja?fmt(s99.totalEnCaja):'—'}</td>
+            <td style="color:var(--ci);font-weight:700">${t43?fmt(t43):'—'}</td>
+            <td style="color:var(--ve)">${s43.totalEnCaja?fmt(s43.totalEnCaja):'—'}</td>
+            <td>${ganador}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
 window.onload=()=>{
   // Cargar estado guardado
   cargarEstado();
