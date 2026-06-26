@@ -1710,6 +1710,35 @@ function ejecutarCierreTurno(){
   };
   try { localStorage.setItem(cierreKey, JSON.stringify(resumen)); } catch(e){}
 
+  // Calcular totales para sync
+  const pedCierre = historial[sede].filter(p=>p.estado!=='anulado');
+  const totalVentas = pedCierre.reduce((s,p)=>s+p.total,0);
+  const efCobrado  = pedCierre.reduce((s,p)=>s+(p.pagos.ef||0),0);
+  const vueltas    = pedCierre.reduce((s,p)=>s+(p.vueltaDada||0),0);
+  const efReal     = efCobrado - vueltas;
+  const nqTotal    = pedCierre.reduce((s,p)=>s+(p.pagos.nq||0),0);
+  const bcTotal    = pedCierre.reduce((s,p)=>s+(p.pagos.bc||0),0);
+  const totalGast  = (gastos[sede]||[]).reduce((s,g)=>s+g.valor,0);
+  const apActual   = apertura[sede];
+
+  // Sync cierre a Google Sheets
+  syncSheets({
+    tipo: 'cierre',
+    fecha: hoy(),
+    horaApertura: apActual.hora,
+    horaCierre: now(),
+    sede,
+    base: apActual.base,
+    totalVentas,
+    totalPedidos: pedCierre.length,
+    pedidosAnulados: historial[sede].filter(p=>p.estado==='anulado').length,
+    efectivoReal: efReal,
+    nequi: nqTotal,
+    bancolombia: bcTotal,
+    totalGastos: totalGast,
+    totalEnCaja: apActual.base + efReal - totalGast,
+  });
+
   // Limpiar datos del turno
   historial[sede] = [];
   activos[sede] = [];
