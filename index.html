@@ -2914,8 +2914,11 @@ async function cargarReportesDesdeSheets() {
       fetch(SHEETS_URL + '?payload=' + encodeURIComponent(JSON.stringify({tipo:'getPedidos', sede:'43'})), {mode:'cors'}).then(r=>r.json())
     ]);
 
+    console.log('r99:', JSON.stringify(r99).substring(0,200));
+    console.log('r43:', JSON.stringify(r43).substring(0,200));
     if (r99.ok && r99.pedidos) reportesCache['99'] = r99.pedidos;
     if (r43.ok && r43.pedidos) reportesCache['43'] = r43.pedidos;
+    console.log('Cache 99:', reportesCache['99'].length, 'Cache 43:', reportesCache['43'].length);
 
     // Poblar selector de fechas
     const todasFechas = new Set([
