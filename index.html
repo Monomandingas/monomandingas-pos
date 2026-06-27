@@ -637,9 +637,17 @@ body{font-family:'Inter',sans-serif;background:var(--ng);color:var(--bl);min-hei
 <div class="view reports-view" id="view-reports">
   <div class="rpt-header">
     <div class="rpt-title">📈 REPORTES</div>
-    <div class="rpt-sede-tabs">
-      <button class="rpt-sede-btn active" onclick="setRptSede('99')" id="rbtn99">LA 99</button>
-      <button class="rpt-sede-btn" onclick="setRptSede('43')" id="rbtn43">LA 43</button>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div class="rpt-sede-tabs">
+        <button class="rpt-sede-btn active" onclick="setRptSede('99')" id="rbtn99">LA 99</button>
+        <button class="rpt-sede-btn" onclick="setRptSede('43')" id="rbtn43">LA 43</button>
+      </div>
+      <select id="rpt-fecha-sel" style="background:var(--ng);border:1px solid var(--gb);border-radius:6px;padding:6px 10px;color:var(--bl);font-size:12px;font-family:Inter,sans-serif;cursor:pointer;outline:none" onchange="onRptFechaChange()">
+        <option value="hoy">Turno actual</option>
+      </select>
+      <button class="comp-sync-btn" onclick="cargarReportesDesdeSheets()" id="btn-rpt-sync" style="font-size:11px;padding:6px 12px">
+        🔄 Cargar desde Sheets
+      </button>
     </div>
   </div>
   <div id="rpt-body"></div>
@@ -1026,6 +1034,7 @@ let gastos={'99':[],'43':[]};
 
 // Menú dinámico — se carga desde Sheets
 let menuCache = null; // null = usar menú hardcoded como fallback
+let reportesCache = {'99':[], '43':[]}; // pedidos históricos desde Sheets
 
 // ═══════════════════════════════════════════════
 //  PERSISTENCIA — localStorage
@@ -1829,12 +1838,34 @@ function setRptSede(s){
   renderReports(s);
 }
 
+
+
+function onRptFechaChange(){
+  renderReports(rptSede);
+}
+
+function getPedidosReporte(s) {
+  const fechaSel = document.getElementById('rpt-fecha-sel')?.value || 'hoy';
+  if (fechaSel === 'hoy') {
+    // Turno actual — usar historial local
+    return historial[s].filter(p=>p.estado!=='anulado');
+  }
+  // Fecha histórica — usar datos de Sheets
+  return (reportesCache[s]||[]).filter(p =>
+    p.estado !== 'anulado' && String(p.fecha) === fechaSel
+  );
+}
+
 function renderReports(s){
   const body=document.getElementById('rpt-body');
-  const ped=historial[s].filter(p=>p.estado!=='anulado');
+  const ped = getPedidosReporte(s);
+  const fechaSel = document.getElementById('rpt-fecha-sel')?.value || 'hoy';
 
   if(!ped.length){
-    body.innerHTML=`<div class="no-data">📊 Sin datos para La ${s} todavía.<br>Confirma pedidos desde el Punto de Venta para ver los reportes.</div>`;
+    const msg = fechaSel === 'hoy'
+      ? '📊 Sin datos para La '+s+' en el turno actual.<br><span style="color:var(--am);font-size:12px">Clic en 🔄 Cargar desde Sheets para ver días anteriores.</span>'
+      : '📊 Sin datos para La '+s+' en la fecha seleccionada.';
+    body.innerHTML='<div class="no-data">'+msg+'</div>';
     return;
   }
 
@@ -2866,6 +2897,45 @@ async function cargarMenuDesdeSheets() {
   } catch(e) {
     // Sin internet o CORS — usar caché local o menú hardcoded (ya cargado)
     console.log('Usando menú local (sin conexión a Sheets)');
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  REPORTES HISTÓRICOS DESDE SHEETS
+// ═══════════════════════════════════════════════
+async function cargarReportesDesdeSheets() {
+  const btn = document.getElementById('btn-rpt-sync');
+  if (btn) { btn.textContent = '⏳ Cargando...'; btn.disabled = true; }
+
+  try {
+    // Cargar La 99 y La 43 en paralelo
+    const [r99, r43] = await Promise.all([
+      fetch(SHEETS_URL + '?payload=' + encodeURIComponent(JSON.stringify({tipo:'getPedidos', sede:'99'})), {mode:'cors'}).then(r=>r.json()),
+      fetch(SHEETS_URL + '?payload=' + encodeURIComponent(JSON.stringify({tipo:'getPedidos', sede:'43'})), {mode:'cors'}).then(r=>r.json())
+    ]);
+
+    if (r99.ok && r99.pedidos) reportesCache['99'] = r99.pedidos;
+    if (r43.ok && r43.pedidos) reportesCache['43'] = r43.pedidos;
+
+    // Poblar selector de fechas
+    const todasFechas = new Set([
+      ...(reportesCache['99']||[]).map(p=>String(p.fecha)),
+      ...(reportesCache['43']||[]).map(p=>String(p.fecha))
+    ]);
+    const sel = document.getElementById('rpt-fecha-sel');
+    if (sel) {
+      const fechasOrdenadas = Array.from(todasFechas).filter(Boolean).sort().reverse();
+      sel.innerHTML = '<option value="hoy">Turno actual</option>' +
+        fechasOrdenadas.map(f=>'<option value="'+f+'">'+f+'</option>').join('');
+    }
+
+    renderReports(rptSede);
+    showToast('📊 Reportes cargados desde Sheets');
+  } catch(e) {
+    showToast('⚠️ No se pudo conectar a Sheets', true);
+    console.warn('Reportes Sheets error:', e);
+  } finally {
+    if (btn) { btn.textContent = '🔄 Cargar desde Sheets'; btn.disabled = false; }
   }
 }
 
