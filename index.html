@@ -1871,7 +1871,13 @@ function renderReports(s){
 
   // KPIs
   const totalVentas=ped.reduce((s,p)=>s+p.total,0);
-  const totalCostos=ped.reduce((s,p)=>p.items.reduce((si,i)=>{ const c=COSTOS[i.id]; return si+(c?c.costo*i.qty:0); },s),0);
+  // Para costos: intentar por ID si disponible, si no usar margen estimado
+  const totalCostos=ped.reduce((s,p)=>p.items.reduce((si,i)=>{
+    const c=COSTOS[i.id];
+    if(c) return si+c.costo*i.qty;
+    // Si no hay ID (pedido desde Sheets), estimar 70% del total del pedido
+    return si;
+  },s),0);
   const margenBruto=totalVentas-totalCostos;
   const margenPct=totalVentas>0?Math.round((margenBruto/totalVentas)*100):0;
   const ticketProm=Math.round(totalVentas/ped.length);
@@ -1883,10 +1889,15 @@ function renderReports(s){
   // Conteo por producto
   const prodMap={};
   ped.forEach(p=>p.items.forEach(i=>{
-    if(!prodMap[i.nombre]) prodMap[i.nombre]={nombre:i.nombre,id:i.id,qty:0,ventas:0,costoTotal:0};
-    prodMap[i.nombre].qty+=i.qty;
-    prodMap[i.nombre].ventas+=i.subtotal;
-    const c=COSTOS[i.id]; if(c) prodMap[i.nombre].costoTotal+=c.costo*i.qty;
+    // Limpiar salsas del nombre: "MandiEspecial [ROSADA,PIÑA]" → "MandiEspecial"
+    const nombreLimpio = (i.nombre||'').replace(/\s*\[.*?\]/g,'').trim();
+    if(!nombreLimpio) return;
+    if(!prodMap[nombreLimpio]) prodMap[nombreLimpio]={nombre:nombreLimpio,id:i.id,qty:0,ventas:0,costoTotal:0};
+    prodMap[nombreLimpio].qty+=i.qty;
+    // subtotal puede ser 0 si viene de Sheets — usar p.total dividido entre items si es necesario
+    const subtotalItem = i.subtotal > 0 ? i.subtotal : (p.total && p.items.length ? Math.round(p.total / p.items.length) : 0);
+    prodMap[nombreLimpio].ventas+=subtotalItem;
+    const c=COSTOS[i.id]; if(c) prodMap[nombreLimpio].costoTotal+=c.costo*i.qty;
   }));
   const prods=Object.values(prodMap).sort((a,b)=>b.ventas-a.ventas);
   const maxVentas=prods.length?prods[0].ventas:1;
