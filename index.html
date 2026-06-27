@@ -587,6 +587,9 @@ body{font-family:'Inter',sans-serif;background:var(--ng);color:var(--bl);min-hei
       <div class="inp-lbl" id="cli-label">Nombre del cliente</div>
       <input type="text" class="inp" id="cli-input" placeholder="Ej: Juan Carlos">
       <div id="domicilio-fee-wrap" style="display:none;margin-top:6px">
+        <div class="inp-lbl">📞 Teléfono del cliente</div>
+        <input type="tel" class="inp" id="domicilio-tel" placeholder="Ej: 3001234567"
+          style="border-color:var(--az);margin-bottom:6px">
         <div class="inp-lbl">🛵 Valor del domicilio</div>
         <input type="number" class="inp" id="domicilio-fee" placeholder="Ej: 3000" min="0"
           oninput="updateTotales()" style="border-color:var(--az)">
@@ -1163,7 +1166,7 @@ function setTipo(t) {
   const feeWrap=document.getElementById('domicilio-fee-wrap');
   const feeInp=document.getElementById('domicilio-fee');
   feeWrap.style.display=t==='domicilio'?'block':'none';
-  if(t==='punto'){ feeInp.value=''; updateTotales(); }
+  if(t==='punto'){ feeInp.value=''; const tel=document.getElementById('domicilio-tel'); if(tel) tel.value=''; updateTotales(); }
 }
 
 // ═══════════════════════════════════════════════
@@ -1305,6 +1308,8 @@ function limpiarPedido(){
   document.getElementById('cli-input').value='';
   const feeInp=document.getElementById('domicilio-fee');
   if(feeInp) feeInp.value='';
+  const telInp=document.getElementById('domicilio-tel');
+  if(telInp) telInp.value='';
   // Restaurar label del botón confirmar
   document.getElementById('btn-confirm').textContent='CONFIRMAR PEDIDO';
   document.getElementById('btn-confirm').style.background='';
@@ -1323,6 +1328,9 @@ function editarPedidoActivo(num) {
   // Cargar datos del pedido en el panel de nuevo pedido
   setTipo(p.tipo);
   document.getElementById('cli-input').value = p.cliente === 'Sin nombre' || p.cliente === 'Sin dirección' ? '' : p.cliente;
+  // Restaurar teléfono si es domicilio
+  const telInp = document.getElementById('domicilio-tel');
+  if (telInp) telInp.value = p.telefono || '';
 
   // Cargar fee de domicilio si aplica
   if (p.domicilioFee > 0) {
@@ -1442,6 +1450,7 @@ function actualizarPedidoActivo(t, pagos) {
     subtotal:(i.pBase+i.pAd)*i.qty
   }));
 
+  const telActualizado = tipoPedido==='domicilio'?(document.getElementById('domicilio-tel')?.value.trim()||''):'';
   [pActivo, pHist].forEach(p => {
     p.items   = nuevosItems;
     p.total   = t;
@@ -1451,6 +1460,7 @@ function actualizarPedidoActivo(t, pagos) {
     p.vueltaDada = vuelta;
     p.tipo    = tipoPedido;
     p.cliente = cliente;
+    p.telefono = telActualizado;
     p.horaEdicion = now();
   });
 
@@ -1484,6 +1494,7 @@ function confirmarPedido(){
   const pedido={
     numero:pedidoCounter++, hora:now(), fecha:hoy(), sede, tipo:tipoPedido,
     cliente:document.getElementById('cli-input').value.trim()||(tipoPedido==='domicilio'?'Sin dirección':'Sin nombre'),
+    telefono:tipoPedido==='domicilio'?(document.getElementById('domicilio-tel')?.value.trim()||''):'',
     items:pedidoItems.map(i=>({nombre:i.producto.n,id:i.producto.id,qty:i.qty,salsas:i.salsas,adiciones:i.adiciones,nota:i.nota,subtotal:(i.pBase+i.pAd)*i.qty})),
     total:t,
     subtotalProductos:pedidoItems.reduce((s,i)=>s+(i.pBase+i.pAd)*i.qty,0),
@@ -1551,7 +1562,8 @@ function buildPedidoCard(p, isEntregado) {
       '<span class="pc-time">'+p.hora+'</span>' +
       '<span class="pc-tipo '+tipoCls+'">'+tipoLabel+'</span>' +
     '</div>' +
-    '<div class="pc-cli" style="margin-bottom:6px">'+(p.tipo==='domicilio'?'📍':'👤')+' <strong>'+p.cliente+'</strong></div>' +
+    '<div class="pc-cli" style="margin-bottom:3px">'+(p.tipo==='domicilio'?'📍':'👤')+' <strong>'+p.cliente+'</strong></div>' +
+    (p.telefono?'<div style="font-size:10px;color:#00BCD4;margin-bottom:4px">📞 '+p.telefono+'</div>':'') +
     (p.domicilioFee>0?'<div style="font-size:9px;background:rgba(30,136,229,.12);color:#1E88E5;border:1px solid #1E88E5;border-radius:4px;padding:2px 7px;display:inline-block;margin-bottom:6px">🛵 Domicilio: '+fmt(p.domicilioFee)+'</div>':'') +
     '<div style="margin-bottom:6px">'+itemsHTML+'</div>' +
     '<div class="pc-foot">' +
